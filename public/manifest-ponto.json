@@ -1,0 +1,25 @@
+{
+    "name": "Ponto JalaBank",
+    "short_name": "Ponto",
+    "description": "Bater Ponto NFC no JalaBank",
+    "start_url": "/ponto-nfc",
+    "scope": "/ponto-nfc",
+    "id": "jalabank-ponto",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#000000",
+    "icons": [
+        {
+            "src": "/ponto-icon.png",
+            "sizes": "1024x1024",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/ponto-icon.png",
+            "sizes": "1024x1024",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
