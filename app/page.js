@@ -1243,12 +1243,15 @@ function CollaboratorBankApp() {
                     boxShadow: '0 -4px 20px rgba(15, 23, 42, 0.05)'
                 }}>
                     {[
-                        { id: 'HOME', label: 'Início', icon: Home },
                         { id: 'WEEKS', label: 'Semanas', icon: BarChart3 },
                         { id: 'STATEMENT', label: 'Extrato', icon: Receipt },
+                        { id: 'CHECKIN' },
                         { id: 'PLATA', label: 'Platas', icon: Coins },
-                        { id: 'RH', label: 'Atestados', icon: ClipboardList }
+                        { id: 'CAREER', label: 'Carreira', icon: GraduationCap }
                     ].map(item => {
+                        if (item.id === 'CHECKIN') {
+                            return <FloatingCheckIn key="checkin" variant="nav" user={userData || authUser} />;
+                        }
                         const Icon = item.icon;
                         const active = activeSection === item.id;
                         return (
@@ -1343,8 +1346,7 @@ function CollaboratorBankApp() {
                 </div>
             )}
 
-            {/* Floating GPS Check-in for Collaborators */}
-            {authUser?.role !== 'admin' && <FloatingCheckIn user={userData || authUser} />}
+            {/* Check-in de ponto agora e o botao central do menu inferior */}
 
             {/* Toast */}
             {toast.visible && (

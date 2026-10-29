@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Play, Coffee, LogOut, CheckCircle2, RotateCcw, AlertCircle, Loader2, X, Clock } from 'lucide-react';
 
-export default function FloatingCheckIn({ user }) {
+export default function FloatingCheckIn({ user, variant = 'floating' }) {
+    const isNav = variant === 'nav';
     const [checkin, setCheckin] = useState(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -20,9 +22,10 @@ export default function FloatingCheckIn({ user }) {
     // Fetch active check-in on mount
     useEffect(() => {
         if (!user?.id) {
-            setLoading(false);
-            return;
+            const timer = setTimeout(() => setLoading(false), 2000);
+            return () => clearTimeout(timer);
         }
+        setLoading(true);
         fetch(`/api/checkins?userId=${user.id}`)
             .then(res => res.json())
             .then(data => {
@@ -168,7 +171,52 @@ export default function FloatingCheckIn({ user }) {
         }
     };
 
-    if (loading) return null;
+    const navButtonStyle = (color, disabled) => ({
+        background: 'none',
+        border: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 3,
+        color: disabled ? '#94a3b8' : color,
+        fontWeight: 700,
+        fontSize: '0.68rem',
+        cursor: disabled ? 'default' : 'pointer',
+        padding: '0',
+        textAlign: 'center',
+        lineHeight: 1.1
+    });
+    const navCircleStyle = (color, disabled) => ({
+        width: 52,
+        height: 52,
+        marginTop: -22,
+        borderRadius: '50%',
+        background: disabled ? '#e2e8f0' : color,
+        color: disabled ? '#94a3b8' : '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: '4px solid #fff',
+        boxShadow: disabled ? 'none' : '0 6px 14px rgba(15, 23, 42, 0.2)'
+    });
+
+    if (loading || !user?.id) {
+        if (isNav) {
+            return (
+                <button type="button" disabled style={navButtonStyle('#94a3b8', true)}>
+                    <span style={navCircleStyle('#e2e8f0', true)}>
+                        <Loader2 size={22} className="animate-spin" style={{ color: '#94a3b8' }} />
+                    </span>
+                    <span style={{ color: '#94a3b8' }}>Ponto</span>
+                </button>
+            );
+        }
+        return (
+            <div className="fab-checkin loading" style={{ background: '#e2e8f0', color: '#94a3b8', cursor: 'not-allowed' }}>
+                <Loader2 size={24} className="animate-spin" />
+            </div>
+        );
+    }
 
     // Determine current step and visibility
     const WAIT_TIME = 50; // 50 minutes
@@ -200,6 +248,14 @@ export default function FloatingCheckIn({ user }) {
             isVisible = getElapsedMinutes(checkin.checkinBreak) >= WAIT_TIME;
         } else {
             // Already finished
+            if (isNav) {
+                return (
+                    <button type="button" disabled style={navButtonStyle('#94a3b8', true)}>
+                        <span style={navCircleStyle('#e2e8f0', true)}><CheckCircle2 size={24} style={{ color: '#94a3b8' }} /></span>
+                        <span style={{ color: '#94a3b8' }}>Finalizado</span>
+                    </button>
+                );
+            }
             return (
                 <div className="checkin-completed-badge">
                     <CheckCircle2 size={16} />
@@ -228,7 +284,24 @@ export default function FloatingCheckIn({ user }) {
         }
     }
 
-    if (!isVisible) return null;
+    if (!isVisible) {
+        if (isNav) {
+            return (
+                <button type="button" disabled style={navButtonStyle('#94a3b8', true)}>
+                    <span style={navCircleStyle('#e2e8f0', true)}>
+                        <Icon size={24} style={{ color: '#94a3b8' }} />
+                    </span>
+                    <span style={{ color: '#94a3b8' }}>Em turno</span>
+                </button>
+            );
+        }
+        return (
+            <div className="fab-checkin" style={{ background: '#e2e8f0', color: '#94a3b8', cursor: 'not-allowed' }}>
+                <Icon size={24} />
+                <span className="fab-label">Em turno</span>
+            </div>
+        );
+    }
 
     // Lateness logic for Modal
     const isLate = () => {
@@ -250,6 +323,20 @@ export default function FloatingCheckIn({ user }) {
 
     return (
         <>
+            {isNav && (
+                <button
+                    type="button"
+                    onClick={() => { setError(null); setIsModalOpen(true); }}
+                    disabled={actionLoading}
+                    style={navButtonStyle(bgColor, false)}
+                >
+                    <span style={navCircleStyle(bgColor, false)}>
+                        {actionLoading ? <Loader2 size={24} className="animate-spin" /> : <Icon size={24} />}
+                    </span>
+                    <span>{label}</span>
+                </button>
+            )}
+            {!isNav && (
             <button
                 className={`fab-checkin ${actionLoading ? 'loading' : ''} ${currentAction === 'BREAK_END' ? 'break-countdown' : ''}`}
                 onClick={() => {
@@ -321,221 +408,80 @@ export default function FloatingCheckIn({ user }) {
                     }
                 `}</style>
             </button>
+            )}
 
             {/* Confirmation Modal */}
-            {isModalOpen && (
-                <div className="checkin-modal-overlay">
-                    <div className="checkin-modal">
-                        <div className="modal-header">
-                            <h3>Confirmar Ação</h3>
-                            <button onClick={() => setIsModalOpen(false)} className="close-btn"><X size={20} /></button>
+            {isModalOpen && createPortal(
+                <div
+                    onClick={() => !actionLoading && setIsModalOpen(false)}
+                    style={{
+                        position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        zIndex: 2000, padding: 24
+                    }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: '#fff', borderRadius: 20, width: '100%', maxWidth: 300,
+                            padding: 18, boxShadow: '0 20px 40px rgba(15, 23, 42, 0.18)',
+                            display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'center'
+                        }}
+                    >
+                        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            {actionNames[currentAction]}
+                        </div>
+                        <div style={{ fontSize: '1.9rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
+                            {currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'capitalize', marginTop: -6 }}>
+                            {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </div>
 
-                        <div className="modal-body">
-                            <div className="action-badge" style={{ background: bgColor + '22', color: bgColor }}>
-                                {actionNames[currentAction]}
+                        {checkin && (
+                            <div style={{ fontSize: '0.74rem', color: '#475569', background: '#f8fafc', borderRadius: 12, padding: '8px 10px', display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+                                <span>Entrada <strong>{formatTime(checkin.checkinEntry)}</strong></span>
+                                {checkin.checkoutBreak && <span>Intervalo <strong>{formatTime(checkin.checkoutBreak)}</strong></span>}
+                                {checkin.checkinBreak && <span>Retorno <strong>{formatTime(checkin.checkinBreak)}</strong></span>}
                             </div>
+                        )}
 
-                            <div className="info-row">
-                                <Clock size={18} />
-                                <div>
-                                    <p className="label">Data e Hora Atual</p>
-                                    <p className="value">
-                                        {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-                                        <br />
-                                        <strong>{currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong>
-                                    </p>
-                                </div>
+                        {isLate() && (
+                            <div style={{ fontSize: '0.72rem', color: '#b45309', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, padding: '6px 10px' }}>
+                                Check-in fora do horário ideal (atrasado).
                             </div>
+                        )}
 
-                            <div className="summary-cards">
-                                {checkin && (
-                                    <div className="summary-card">
-                                        <div className="card-label">Horários</div>
-                                        <div className="card-content">
-                                             <div className="time-item">
-                                                 <span className="dot entry"></span>
-                                                 <span>Entrada: <strong>{formatTime(checkin.checkinEntry)}</strong></span>
-                                             </div>
-                                             {checkin.checkoutBreak && (
-                                                 <div className="time-item">
-                                                     <span className="dot break"></span>
-                                                     <span>Intervalo: <strong>{formatTime(checkin.checkoutBreak)}</strong></span>
-                                                 </div>
-                                             )}
-                                             {checkin.checkinBreak && (
-                                                 <div className="time-item">
-                                                     <span className="dot break"></span>
-                                                     <span>Retorno: <strong>{formatTime(checkin.checkinBreak)}</strong></span>
-                                                 </div>
-                                             )}
-                                        </div>
-                                    </div>
-                                )}
-
+                        {error && (
+                            <div style={{ fontSize: '0.74rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '6px 10px', fontWeight: 600 }}>
+                                {error}
                             </div>
+                        )}
 
-                            {isLate() && (
-                                <div className="late-warning">
-                                    <AlertCircle size={18} />
-                                    <span>Você está realizando o check-in fora do horário ideal (Atrasado).</span>
-                                </div>
-                            )}
-
-                            {error && (
-                                <div className="error-warning">
-                                    <AlertCircle size={18} />
-                                    <span>{error}</span>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="modal-footer">
-                            <button className="confirm-btn" style={{ background: bgColor }} onClick={() => handleAction(currentAction)}>
-                                {actionLoading ? <Loader2 className="animate-spin" size={20} /> : 'Confirmar Registro'}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                                type="button"
+                                onClick={() => setIsModalOpen(false)}
+                                disabled={actionLoading}
+                                style={{ flex: 1, height: 42, borderRadius: 12, border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleAction(currentAction)}
+                                disabled={actionLoading}
+                                style={{ flex: 1.4, height: 42, borderRadius: 12, border: 'none', background: '#ea580c', color: '#fff', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                {actionLoading ? <Loader2 className="animate-spin" size={18} /> : 'Confirmar'}
                             </button>
                         </div>
                     </div>
-
-                    <style jsx>{`
-                        .checkin-modal-overlay {
-                            position: fixed;
-                            top: 0;
-                            left: 0;
-                            right: 0;
-                            bottom: 0;
-                            background: rgba(0,0,0,0.8);
-                            backdrop-filter: blur(8px);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            z-index: 2000;
-                            padding: 20px;
-                        }
-                        .checkin-modal {
-                            background: #111827;
-                            border: 1px solid #e2e8f0;
-                            border-radius: 24px;
-                            width: 100%;
-                            max-width: 400px;
-                            box-shadow: 0 25px 50px -12px #f1f5f9;
-                            animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                        }
-                        @keyframes modalIn {
-                            from { transform: scale(0.9) translateY(20px); opacity: 0; }
-                            to { transform: scale(1) translateY(0); opacity: 1; }
-                        }
-                        .modal-header {
-                            padding: 24px;
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            border-bottom: 1px solid #f8fafc;
-                        }
-                        .modal-header h3 { margin: 0; font-size: 1.25rem; }
-                        .close-btn { background: none; border: none; color: #9ca3af; cursor: pointer; }
-                        .modal-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
-                        .action-badge {
-                            padding: 8px 16px;
-                            border-radius: 12px;
-                            font-weight: 800;
-                            text-transform: uppercase;
-                            font-size: 0.75rem;
-                            letter-spacing: 1px;
-                            align-self: flex-start;
-                        }
-                        .info-row { display: flex; gap: 16px; align-items: flex-start; }
-                        .info-row .label { font-size: 0.75rem; color: #9ca3af; margin: 0; }
-                        .info-row .value { font-size: 0.9rem; margin: 4px 0 0 0; text-transform: capitalize; }
-                        .late-warning {
-                            background: rgba(239, 68, 68, 0.1);
-                            color: #fca5a5;
-                            padding: 12px;
-                            border-radius: 12px;
-                            display: flex;
-                            gap: 10px;
-                            font-size: 0.8rem;
-                            line-height: 1.4;
-                            border: 1px solid rgba(239, 68, 68, 0.2);
-                        }
-                        .error-warning {
-                            background: rgba(239, 68, 68, 0.15);
-                            color: #ef4444;
-                            padding: 14px;
-                            border-radius: 12px;
-                            display: flex;
-                            gap: 12px;
-                            font-size: 0.85rem;
-                            line-height: 1.4;
-                            border: 1px solid rgba(239, 68, 68, 0.3);
-                            font-weight: 500;
-                            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-                        }
-                        @keyframes shake {
-                            10%, 90% { transform: translate3d(-1px, 0, 0); }
-                            20%, 80% { transform: translate3d(2px, 0, 0); }
-                            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-                            40%, 60% { transform: translate3d(4px, 0, 0); }
-                        }
-                        .confirm-btn {
-                            width: 100%;
-                            height: 48px;
-                            border-radius: 12px;
-                            border: none;
-                            color: black;
-                            font-weight: 700;
-                            cursor: pointer;
-                            transition: all 0.2s;
-                            text-transform: uppercase;
-                            letter-spacing: 0.5px;
-                        }
-                        .confirm-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
-                        .modal-footer { padding: 0 24px 24px 24px; }
-
-                        .summary-cards {
-                            display: flex;
-                            flex-direction: column;
-                            gap: 12px;
-                        }
-                        .summary-card {
-                            background: #f8fafc;
-                            border: 1px solid #f8fafc;
-                            border-radius: 16px;
-                            padding: 16px;
-                        }
-                        .card-label {
-                            font-size: 0.65rem;
-                            text-transform: uppercase;
-                            letter-spacing: 1px;
-                            color: #9ca3af;
-                            margin-bottom: 8px;
-                            font-weight: 700;
-                        }
-                        .card-content {
-                            display: flex;
-                            flex-direction: column;
-                            gap: 6px;
-                        }
-                        .time-item, .scale-item {
-                            font-size: 0.85rem;
-                            display: flex;
-                            align-items: center;
-                            gap: 8px;
-                        }
-                        .dot {
-                            width: 6px;
-                            height: 6px;
-                            border-radius: 50%;
-                        }
-                        .dot.entry { background: var(--accent-green); }
-                        .dot.break { background: var(--accent-orange); }
-                        .dot.exit { background: var(--accent-red); }
-                    `}</style>
                 </div>
-            )}
+            , document.body)}
 
             {/* Local Toast */}
-            {toast.visible && (
+            {toast.visible && createPortal(
                 <div className={`checkin-toast ${toast.type}`}>
                     {toast.type === 'error' ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
                     {toast.message}
@@ -567,7 +513,7 @@ export default function FloatingCheckIn({ user }) {
                         }
                     `}</style>
                 </div>
-            )}
+            , document.body)}
         </>
     );
 }
