@@ -238,7 +238,8 @@ export async function POST(request) {
             }
         }
 
-        return NextResponse.json(checkin);
+        const platasEarned = action === 'ENTRY' ? (checkin?.status === 'LATE' ? 1 : 3) : 0;
+        return NextResponse.json({ ...checkin, platasEarned });
     } catch (error) {
         console.error('Error in POST /api/checkins:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

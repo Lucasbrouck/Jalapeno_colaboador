@@ -82,7 +82,20 @@ function CollaboratorBankApp() {
 
     const fmtMoney = (val) => {
         if (hideValues) return 'R$ •••••';
-        return `R$ ${Number(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `R$\u00A0${Number(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
+
+    const isAbsenceExpired = (dateStr) => {
+        if (!dateStr) return false;
+        const parts = dateStr.split('-').map(Number);
+        if (parts.length < 3) return false;
+        const [y, m, d] = parts;
+        const absDate = new Date(y, m - 1, d);
+        absDate.setHours(0, 0, 0, 0);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const diffDays = Math.floor((today.getTime() - absDate.getTime()) / (1000 * 60 * 60 * 24));
+        return diffDays > 7;
     };
 
     const safeJson = async (res, fallback = []) => {
@@ -227,7 +240,17 @@ function CollaboratorBankApp() {
                 };
             });
 
-        const monthAbsences = absences.filter(a => a.date?.startsWith(selectedMonth));
+        const monthAbsences = absences
+            .filter(a => a.date?.startsWith(selectedMonth))
+            .filter(a => {
+                const desc = (a.description || '').toLowerCase();
+                const type = (a.type || '').toLowerCase();
+                const reason = (a.reason || '').toLowerCase();
+                const just = String(a.justification_status || '').toLowerCase();
+                const isSuspension = desc.includes('suspens') || type.includes('suspens') || reason.includes('suspens') || just.startsWith('suspension');
+                const isFolga = desc.includes('folga') || type.includes('folga') || reason.includes('folga') || just.startsWith('folga');
+                return !isSuspension && !isFolga;
+            });
         const monthAdvances = advances.filter(a => a.date?.startsWith(selectedMonth));
         const totalAdvances = monthAdvances.reduce((acc, a) => acc + (parseFloat(a.value) || 0), 0);
 
@@ -246,6 +269,10 @@ function CollaboratorBankApp() {
 
     const handleJustifySubmit = async (absenceId, file) => {
         if (!file) return;
+        if (selectedAbsenceForJustify && isAbsenceExpired(selectedAbsenceForJustify.date)) {
+            showToast('Prazo de 7 dias para envio de atestado expirado.', 'error');
+            return;
+        }
         setIsUploading(true);
         try {
             const formData = new FormData();
@@ -291,11 +318,12 @@ function CollaboratorBankApp() {
                     background: '#fff7ed',
                     border: '1px solid #ffedd5',
                     borderRadius: 12,
-                    padding: '8px 6px',
-                    textAlign: 'center'
+                    padding: '8px 4px',
+                    textAlign: 'center',
+                    minWidth: 0,
                 }}>
-                    <div style={{ fontSize: '0.66rem', color: '#9a3412', fontWeight: 700 }}>{label}</div>
-                    <div style={{ fontSize: '0.72rem', color: '#ea580c', fontWeight: 800, marginTop: 2 }}>Apura Seg.</div>
+                    <div style={{ fontSize: '0.66rem', color: '#9a3412', fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</div>
+                    <div style={{ fontSize: '0.72rem', color: '#ea580c', fontWeight: 800, marginTop: 2, whiteSpace: 'nowrap' }}>Apura Seg.</div>
                 </div>
             );
         }
@@ -310,11 +338,12 @@ function CollaboratorBankApp() {
                 background: cfg.bg,
                 border: `1px solid ${cfg.border}`,
                 borderRadius: 12,
-                padding: '8px 6px',
-                textAlign: 'center'
+                    padding: '8px 4px',
+                textAlign: 'center',
+                    minWidth: 0,
             }}>
-                <div style={{ fontSize: '0.66rem', color: '#475569', fontWeight: 700 }}>{label}</div>
-                <div style={{ fontSize: '0.76rem', color: cfg.color, fontWeight: 800, marginTop: 2 }}>{cfg.text}</div>
+                <div style={{ fontSize: '0.66rem', color: '#475569', fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</div>
+                <div style={{ fontSize: '0.76rem', color: cfg.color, fontWeight: 800, marginTop: 2, whiteSpace: 'nowrap' }}>{cfg.text}</div>
             </div>
         );
     };
@@ -755,7 +784,7 @@ function CollaboratorBankApp() {
                                     Faltas & Envio de Atestados
                                 </h3>
                                 <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0 0 14px' }}>
-                                    Faltas sem abono reduzem 10% do prêmio consolidado do mês.
+                                    Envie atestados médicos em até 7 dias da falta para análise do RH.
                                 </p>
 
                                 {prizeSummary.monthAbsences.length === 0 ? (
@@ -793,40 +822,44 @@ function CollaboratorBankApp() {
                                                     <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#0f172a' }}>
                                                         {formatLocalDate(abs.date)}
                                                     </div>
-                                                    <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                                                        {abs.description || 'Ausência registrada'}
-                                                    </div>
-                                                    <div style={{ marginTop: 4 }}>
-                                                        {abs.excused ? (
-                                                            <span className="rh-badge badge-success">Abonada</span>
-                                                        ) : abs.justification_status === 'PENDING' ? (
-                                                            <span className="rh-badge badge-warning">Em análise pelo RH</span>
-                                                        ) : (
-                                                            <span className="rh-badge badge-danger">Sem abono (-10%)</span>
-                                                        )}
-                                                    </div>
+                                                    {(abs.excused || abs.justification_status === 'PENDING') && (
+                                                        <div style={{ marginTop: 4 }}>
+                                                            {abs.excused ? (
+                                                                <span className="rh-badge badge-success">Abonada</span>
+                                                            ) : (
+                                                                <span className="rh-badge badge-warning">Em análise pelo RH</span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                {!abs.excused && abs.justification_status !== 'PENDING' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setSelectedAbsenceForJustify(abs)}
-                                                        style={{
-                                                            background: '#ea580c',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            borderRadius: 10,
-                                                            padding: '8px 12px',
-                                                            fontSize: '0.74rem',
-                                                            fontWeight: 700,
-                                                            cursor: 'pointer',
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            gap: 6
-                                                        }}
-                                                    >
-                                                        <Upload size={14} /> Atestado
-                                                    </button>
+                                                {!abs.excused && abs.justification_status !== 'PENDING' && abs.description !== 'Folga' && (
+                                                    isAbsenceExpired(abs.date) ? (
+                                                        <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, padding: '4px 8px', background: '#f1f5f9', borderRadius: 8, whiteSpace: 'nowrap' }}>
+                                                            Prazo expirado
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedAbsenceForJustify(abs)}
+                                                            style={{
+                                                                background: '#ea580c',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: 10,
+                                                                padding: '8px 12px',
+                                                                fontSize: '0.74rem',
+                                                                fontWeight: 700,
+                                                                cursor: 'pointer',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: 6,
+                                                                whiteSpace: 'nowrap'
+                                                            }}
+                                                        >
+                                                            <Upload size={14} /> Atestado
+                                                        </button>
+                                                    )
                                                 )}
                                             </div>
                                         ))}
@@ -900,26 +933,9 @@ function CollaboratorBankApp() {
 
                             {/* SECTION: SEMANAS OPERACIONAIS (TERÇA A DOMINGO) */}
                             {(activeSection === 'HOME' || activeSection === 'WEEKS') && (
-                                <div style={{
-                                    background: '#ffffff',
-                                    borderRadius: 22,
-                                    padding: '18px',
-                                    boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)',
-                                    border: '1px solid #f1f5f9'
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                                        <div>
-                                            <h2 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-                                                Ciclos Semanais (Terça a Domingo)
-                                            </h2>
-                                            <p style={{ fontSize: '0.73rem', color: '#64748b', margin: '2px 0 0' }}>
-                                                Apuração toda segunda-feira referente à semana anterior
-                                            </p>
-                                        </div>
-                                    </div>
-
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                     {prizeSummary.weeksList.length === 0 ? (
-                                        <div style={{ textAlign: 'center', padding: 24, color: '#94a3b8', fontSize: '0.84rem' }}>
+                                        <div style={{ textAlign: 'center', padding: 24, color: '#94a3b8', fontSize: '0.84rem', background: '#ffffff', borderRadius: 20, border: '1px solid #f1f5f9' }}>
                                             Nenhuma semana registrada neste mês.
                                         </div>
                                     ) : (
@@ -933,10 +949,11 @@ function CollaboratorBankApp() {
                                                     <div
                                                         key={wk.weekMonday}
                                                         style={{
-                                                            background: wk.isPendingApuracao ? '#fffaf5' : '#f8fafc',
+                                                            background: wk.isPendingApuracao ? '#fffaf5' : '#ffffff',
                                                             border: `1px solid ${wk.isPendingApuracao ? '#fed7aa' : '#e2e8f0'}`,
-                                                            borderRadius: 16,
-                                                            padding: '14px'
+                                                            borderRadius: 20,
+                                                            padding: '16px',
+                                                            boxShadow: '0 4px 16px rgba(15, 23, 42, 0.04)'
                                                         }}
                                                     >
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
@@ -970,11 +987,11 @@ function CollaboratorBankApp() {
                                                                     )}
                                                                 </div>
                                                                 <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 2 }}>
-                                                                    {wk.myShiftsCount} turno(s) trabalhados na semana
+                                                                    em {wk.myShiftsCount} turno(s) trabalhados
                                                                 </div>
                                                             </div>
 
-                                                            <div style={{ textAlign: 'right' }}>
+                                                            <div style={{ textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
                                                                 <div style={{
                                                                     fontWeight: 800,
                                                                     fontSize: '1.05rem',
@@ -989,6 +1006,7 @@ function CollaboratorBankApp() {
                                                                 ) : (
                                                                     <div style={{
                                                                         display: 'inline-block',
+                                                                        whiteSpace: 'nowrap',
                                                                         marginTop: 3,
                                                                         background: '#fff7ed',
                                                                         border: '1px solid #fed7aa',
@@ -1013,9 +1031,7 @@ function CollaboratorBankApp() {
                                                             marginBottom: 10
                                                         }}>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.73rem', marginBottom: 5 }}>
-                                                                <span style={{ color: '#475569', fontWeight: 600 }}>
-                                                                    Faturamento: <strong style={{ color: '#0f172a' }}>{fmtMoney(wk.weekRevenue)}</strong>
-                                                                </span>
+                                                                <strong style={{ color: '#0f172a', fontWeight: 800, fontSize: '0.8rem' }}>{fmtMoney(wk.weekRevenue)}</strong>
                                                                 <span style={{ fontWeight: 800, color: pct >= 100 ? '#15803d' : '#ea580c' }}>
                                                                     {pct}% da Meta
                                                                 </span>
@@ -1033,7 +1049,7 @@ function CollaboratorBankApp() {
                                                                 }} />
                                                             </div>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#94a3b8', fontWeight: 600 }}>
-                                                                <span>Meta Semanal: {fmtMoney(revGoal)}</span>
+                                                                <span>Meta: {fmtMoney(revGoal)}</span>
                                                                 {revSuper > 0 && <span>Supermeta: {fmtMoney(revSuper)}</span>}
                                                             </div>
                                                         </div>
@@ -1041,7 +1057,7 @@ function CollaboratorBankApp() {
                                                         {/* 4 Multipliers */}
                                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
                                                             {renderMultiplierPill(wk.mRev, wk.isPendingApuracao, 'Fat. Sem.')}
-                                                            {renderMultiplierPill(wk.mCMV, wk.isPendingApuracao, wk.isPendingApuracao ? 'CMV' : `CMV ${wk.cmv ? `${wk.cmv}%` : ''}`)}
+                                                            {renderMultiplierPill(wk.mCMV, wk.isPendingApuracao, wk.isPendingApuracao ? 'CMV' : (wk.cmv ? `CMV ${Number(wk.cmv).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : 'CMV'))}
                                                             {renderMultiplierPill(wk.mRating, wk.isPendingApuracao, wk.isPendingApuracao ? 'Avaliação' : `Aval. ${wk.rating || ''}`)}
                                                             {renderMultiplierPill(wk.mOps, wk.isPendingApuracao, wk.isPendingApuracao ? 'Operacional' : `Oper. ${wk.ops || ''}`)}
                                                         </div>
@@ -1054,14 +1070,15 @@ function CollaboratorBankApp() {
                                                     type="button"
                                                     onClick={() => setActiveSection('WEEKS')}
                                                     style={{
-                                                        background: '#fff7ed',
+                                                        background: '#ffffff',
                                                         color: '#ea580c',
-                                                        border: '1px solid #ffedd5',
-                                                        borderRadius: 12,
-                                                        padding: '10px',
-                                                        fontSize: '0.78rem',
+                                                        border: '1px solid #fed7aa',
+                                                        borderRadius: 14,
+                                                        padding: '12px',
+                                                        fontSize: '0.8rem',
                                                         fontWeight: 800,
-                                                        cursor: 'pointer'
+                                                        cursor: 'pointer',
+                                                        boxShadow: '0 2px 8px rgba(234, 88, 12, 0.04)'
                                                     }}
                                                 >
                                                     Ver todas as {prizeSummary.weeksList.length} semanas do mês
@@ -1131,7 +1148,7 @@ function CollaboratorBankApp() {
                                                                 <div>
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                                                         <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
-                                                                            Rateio Turno {shift.type === 'DAY' ? 'Dia' : 'Noite'}
+                                                                            {shift.type === 'DAY' ? 'Dia' : 'Noite'}
                                                                         </span>
                                                                         {shift.myWorker?.isDouble && (
                                                                             <span style={{ background: '#dbeafe', color: '#1d4ed8', fontSize: '0.64rem', fontWeight: 800, padding: '2px 6px', borderRadius: 6 }}>
@@ -1145,12 +1162,12 @@ function CollaboratorBankApp() {
                                                                         )}
                                                                     </div>
                                                                     <div style={{ fontSize: '0.73rem', color: '#64748b', marginTop: 2 }}>
-                                                                        {formatLocalDate(shift.date)} · Semana {wkInfo?.shortRangeLabel}
+                                                                        {formatLocalDate(shift.date)}
                                                                     </div>
                                                                 </div>
                                                             </div>
 
-                                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                            <div style={{ textAlign: 'right', flexShrink: 0, whiteSpace: 'nowrap' }}>
                                                                 <div style={{
                                                                     fontWeight: 800,
                                                                     fontSize: '0.94rem',
@@ -1165,7 +1182,7 @@ function CollaboratorBankApp() {
                                                                 }}>
                                                                     {isPending
                                                                         ? `Prêmio Máximo · Apura ${wkInfo?.apuracaoLabel}`
-                                                                        : `Consolidado (Máx: ${fmtMoney(shift.maxPrizeValue)})`}
+                                                                        : `Máx: ${fmtMoney(shift.maxPrizeValue)}`}
                                                                 </div>
                                                             </div>
                                                         </div>

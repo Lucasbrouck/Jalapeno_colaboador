@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Coffee, LogOut, CheckCircle2, RotateCcw, AlertCircle, Loader2, X, Clock } from 'lucide-react';
+import { Play, Coffee, LogOut, CheckCircle2, RotateCcw, AlertCircle, Loader2, X, Clock, Coins, Sparkles } from 'lucide-react';
 
 export default function FloatingCheckIn({ user, variant = 'floating' }) {
     const isNav = variant === 'nav';
@@ -10,6 +10,7 @@ export default function FloatingCheckIn({ user, variant = 'floating' }) {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [rewardModal, setRewardModal] = useState({ open: false, platas: 0, status: 'ON_TIME' });
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
     const [currentTime, setCurrentTime] = useState(new Date());
     const [error, setError] = useState(null);
@@ -512,6 +513,227 @@ export default function FloatingCheckIn({ user, variant = 'floating' }) {
                             to { transform: translateX(0); opacity: 1; }
                         }
                     `}</style>
+                </div>
+            , document.body)}
+            {/* Modal de Recompensa de Platas (Ao bater ponto de entrada) */}
+            {rewardModal.open && createPortal(
+                <div
+                    onClick={() => setRewardModal(prev => ({ ...prev, open: false }))}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(15, 23, 42, 0.72)',
+                        backdropFilter: 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 3000,
+                        padding: 24
+                    }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="plata-reward-card"
+                        style={{
+                            background: '#ffffff',
+                            borderRadius: 24,
+                            width: '100%',
+                            maxWidth: 320,
+                            padding: '28px 22px 22px',
+                            boxShadow: '0 25px 60px rgba(234, 88, 12, 0.25), 0 10px 30px rgba(15, 23, 42, 0.2)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            textAlign: 'center',
+                            position: 'relative',
+                            overflow: 'hidden'
+                        }}
+                    >
+                        {/* Shimmer top line */}
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: 6,
+                            background: 'linear-gradient(90deg, #f59e0b, #ea580c, #f59e0b)'
+                        }} />
+
+                        {/* Floating sparkles */}
+                        <div className="plata-sparkle sparkle-tl">✨</div>
+                        <div className="plata-sparkle sparkle-tr">⭐</div>
+                        <div className="plata-sparkle sparkle-br">✨</div>
+
+                        {/* Animated Jumping Coin */}
+                        <div className="coin-jump-stage">
+                            <div className="coin-glow-aura" />
+                            <div className="coin-jumping-wrapper">
+                                <div className="coin-disc">
+                                    <div className="coin-specular" />
+                                    <Coins size={38} color="#ffffff" strokeWidth={2.4} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Badge */}
+                        <div style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            color: '#ea580c',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.08em',
+                            background: '#fff7ed',
+                            border: '1px solid #ffedd5',
+                            padding: '4px 12px',
+                            borderRadius: 999,
+                            marginBottom: 10,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4
+                        }}>
+                            <Sparkles size={12} /> Turno Iniciado!
+                        </div>
+
+                        {/* Amount */}
+                        <div style={{
+                            fontSize: '1.85rem',
+                            fontWeight: 900,
+                            color: '#0f172a',
+                            lineHeight: 1.1,
+                            marginBottom: 8
+                        }}>
+                            +{rewardModal.platas} {rewardModal.platas === 1 ? 'Plata' : 'Platas'}!
+                        </div>
+
+                        {/* Subtitle */}
+                        <p style={{
+                            fontSize: '0.8rem',
+                            color: '#64748b',
+                            lineHeight: 1.45,
+                            margin: '0 0 20px',
+                            padding: '0 6px'
+                        }}>
+                            {rewardModal.status === 'LATE'
+                                ? 'Check-in realizado com atraso. Você garantiu +1 Plata na sua carteira!'
+                                : 'Parabéns pela pontualidade! Você garantiu o bônus máximo de +3 Platas na carteira.'}
+                        </p>
+
+                        {/* Dismiss button */}
+                        <button
+                            type="button"
+                            onClick={() => setRewardModal(prev => ({ ...prev, open: false }))}
+                            style={{
+                                width: '100%',
+                                height: 46,
+                                borderRadius: 14,
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+                                color: '#ffffff',
+                                fontWeight: 800,
+                                fontSize: '0.86rem',
+                                cursor: 'pointer',
+                                boxShadow: '0 8px 18px rgba(234, 88, 12, 0.3)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em'
+                            }}
+                        >
+                            Bora pro Turno!
+                        </button>
+
+                        <style jsx>{`
+                            .plata-reward-card {
+                                animation: rewardModalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                            }
+                            @keyframes rewardModalIn {
+                                0% { opacity: 0; transform: scale(0.65) translateY(30px); }
+                                100% { opacity: 1; transform: scale(1) translateY(0); }
+                            }
+                            .coin-jump-stage {
+                                position: relative;
+                                width: 110px;
+                                height: 110px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                margin-bottom: 12px;
+                            }
+                            .coin-glow-aura {
+                                position: absolute;
+                                width: 95px;
+                                height: 95px;
+                                border-radius: 50%;
+                                background: radial-gradient(circle, rgba(245, 158, 11, 0.5) 0%, rgba(234, 88, 12, 0.2) 55%, transparent 75%);
+                                animation: auraPulse 1.8s ease-in-out infinite alternate;
+                            }
+                            @keyframes auraPulse {
+                                0% { transform: scale(0.8); opacity: 0.5; }
+                                100% { transform: scale(1.4); opacity: 1; }
+                            }
+                            .coin-jumping-wrapper {
+                                animation: coinJumpAnim 0.85s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, coinIdleAnim 2.2s ease-in-out 0.85s infinite alternate;
+                            }
+                            @keyframes coinJumpAnim {
+                                0% { transform: translateY(90px) scale(0.15) rotate(-45deg); opacity: 0; }
+                                50% { transform: translateY(-40px) scale(1.35) rotate(15deg); opacity: 1; }
+                                70% { transform: translateY(12px) scale(0.9) rotate(-6deg); }
+                                85% { transform: translateY(-6px) scale(1.06) rotate(2deg); }
+                                100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+                            }
+                            @keyframes coinIdleAnim {
+                                0% { transform: translateY(0) rotate(0deg); }
+                                100% { transform: translateY(-8px) rotate(5deg); }
+                            }
+                            .coin-disc {
+                                width: 76px;
+                                height: 76px;
+                                border-radius: 50%;
+                                background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 45%, #d97706 80%, #b45309 100%);
+                                border: 4px solid #fef3c7;
+                                box-shadow: 0 12px 28px rgba(217, 119, 6, 0.55), inset 0 3px 6px rgba(255, 255, 255, 0.7), inset 0 -4px 8px rgba(180, 83, 9, 0.7);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                position: relative;
+                                overflow: hidden;
+                            }
+                            .coin-specular {
+                                position: absolute;
+                                top: -20%;
+                                left: -20%;
+                                width: 140%;
+                                height: 50%;
+                                background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 100%);
+                                transform: rotate(-30deg);
+                                border-radius: 50%;
+                            }
+                            .plata-sparkle {
+                                position: absolute;
+                                pointer-events: none;
+                            }
+                            .sparkle-tl {
+                                top: 22px;
+                                left: 30px;
+                                font-size: 1.15rem;
+                                animation: sparkleFlash 1.6s ease-in-out infinite alternate;
+                            }
+                            .sparkle-tr {
+                                top: 16px;
+                                right: 32px;
+                                font-size: 1.25rem;
+                                animation: sparkleFlash 1.4s ease-in-out 0.3s infinite alternate;
+                            }
+                            .sparkle-br {
+                                top: 78px;
+                                right: 26px;
+                                font-size: 1.05rem;
+                                animation: sparkleFlash 1.8s ease-in-out 0.6s infinite alternate;
+                            }
+                            @keyframes sparkleFlash {
+                                0% { transform: scale(0.5) rotate(0deg); opacity: 0.25; }
+                                100% { transform: scale(1.3) rotate(25deg); opacity: 1; }
+                            }
+                        `}</style>
+                    </div>
                 </div>
             , document.body)}
         </>
