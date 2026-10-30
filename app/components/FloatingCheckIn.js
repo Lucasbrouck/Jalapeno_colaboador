@@ -11,6 +11,25 @@ export default function FloatingCheckIn({ user, variant = 'floating' }) {
     const [actionLoading, setActionLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [rewardModal, setRewardModal] = useState({ open: false, platas: 0, status: 'ON_TIME' });
+
+    useEffect(() => {
+        const handleShowReward = (e) => {
+            const platas = e?.detail?.platas !== undefined ? e.detail.platas : 3;
+            const status = e?.detail?.status || 'ON_TIME';
+            setRewardModal({ open: true, platas, status });
+        };
+        if (typeof window !== 'undefined') {
+            window.addEventListener('show_plata_reward', handleShowReward);
+            window.testPlataReward = (platas = 3, status = 'ON_TIME') => {
+                window.dispatchEvent(new CustomEvent('show_plata_reward', { detail: { platas, status } }));
+            };
+        }
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('show_plata_reward', handleShowReward);
+            }
+        };
+    }, []);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
     const [currentTime, setCurrentTime] = useState(new Date());
     const [error, setError] = useState(null);
@@ -145,7 +164,21 @@ export default function FloatingCheckIn({ user, variant = 'floating' }) {
 
                 let msg = '';
                 switch (action) {
-                    case 'ENTRY': msg = 'Check-in de entrada realizado!'; break;
+                    case 'ENTRY': {
+                        msg = 'Check-in de entrada realizado!';
+                        const earned = (data && data.platasEarned !== undefined)
+                            ? Number(data.platasEarned)
+                            : (data?.status === 'LATE' ? 1 : 3);
+                        setRewardModal({
+                            open: true,
+                            platas: earned,
+                            status: data?.status || 'ON_TIME'
+                        });
+                        try {
+                            window.dispatchEvent(new CustomEvent('plata_balance_updated', { detail: { earned } }));
+                        } catch (e) {}
+                        break;
+                    }
                     case 'BREAK_START': msg = 'Início de intervalo registrado!'; break;
                     case 'BREAK_END': msg = 'Retorno de intervalo registrado!'; break;
                     case 'EXIT': msg = 'Check-out de saída realizado!'; break;
@@ -201,24 +234,6 @@ export default function FloatingCheckIn({ user, variant = 'floating' }) {
         boxShadow: disabled ? 'none' : '0 6px 14px rgba(15, 23, 42, 0.2)'
     });
 
-    if (loading || !user?.id) {
-        if (isNav) {
-            return (
-                <button type="button" disabled style={navButtonStyle('#94a3b8', true)}>
-                    <span style={navCircleStyle('#e2e8f0', true)}>
-                        <Loader2 size={22} className="animate-spin" style={{ color: '#94a3b8' }} />
-                    </span>
-                    <span style={{ color: '#94a3b8' }}>Ponto</span>
-                </button>
-            );
-        }
-        return (
-            <div className="fab-checkin loading" style={{ background: '#e2e8f0', color: '#94a3b8', cursor: 'not-allowed' }}>
-                <Loader2 size={24} className="animate-spin" />
-            </div>
-        );
-    }
-
     // Determine current step and visibility
     const WAIT_TIME = 50; // 50 minutes
     let currentAction = 'ENTRY';
@@ -226,6 +241,7 @@ export default function FloatingCheckIn({ user, variant = 'floating' }) {
     let Icon = Play;
     let bgColor = 'var(--accent-green)';
     let isVisible = true;
+    let isFinished = false;
 
     if (checkin) {
         if (!checkin.checkoutBreak) {
@@ -248,16 +264,56 @@ export default function FloatingCheckIn({ user, variant = 'floating' }) {
             bgColor = 'var(--accent-red)';
             isVisible = getElapsedMinutes(checkin.checkinBreak) >= WAIT_TIME;
         } else {
-            // Already finished
-            if (isNav) {
-                return (
-                    <button type="button" disabled style={navButtonStyle('#94a3b8', true)}>
-                        <span style={navCircleStyle('#e2e8f0', true)}><CheckCircle2 size={24} style={{ color: '#94a3b8' }} /></span>
-                        <span style={{ color: '#94a3b8' }}>Finalizado</span>
-                    </button>
-                );
-            }
-            return (
+            isFinished = true;
+        }
+    }
+
+    // Lateness logic for Modal
+    const isLate = () => {
+        if (currentAction !== 'ENTRY') return false;
+        const h = currentTime.getHours();
+        const m = currentTime.getMinutes();
+        const total = h * 60 + m;
+        // Business Rules: Day until 9:15, Night until 15:15
+        if (total < 13 * 60) return total > (9 * 60 + 15);
+        return total > (15 * 60 + 15);
+    };
+
+    const actionNames = {
+        'ENTRY': 'Entrada no Turno',
+        'BREAK_START': 'Saída para Intervalo',
+        'BREAK_END': 'Retorno do Intervalo',
+        'EXIT': 'Saída do Turno'
+    };
+
+    let buttonContent = null;
+    if (loading || !user?.id) {
+        if (isNav) {
+            buttonContent = (
+                <button type="button" disabled style={navButtonStyle('#94a3b8', true)}>
+                    <span style={navCircleStyle('#e2e8f0', true)}>
+                        <Loader2 size={22} className="animate-spin" style={{ color: '#94a3b8' }} />
+                    </span>
+                    <span style={{ color: '#94a3b8' }}>Ponto</span>
+                </button>
+            );
+        } else {
+            buttonContent = (
+                <div className="fab-checkin loading" style={{ background: '#e2e8f0', color: '#94a3b8', cursor: 'not-allowed' }}>
+                    <Loader2 size={24} className="animate-spin" />
+                </div>
+            );
+        }
+    } else if (isFinished) {
+        if (isNav) {
+            buttonContent = (
+                <button type="button" disabled style={navButtonStyle('#94a3b8', true)}>
+                    <span style={navCircleStyle('#e2e8f0', true)}><CheckCircle2 size={24} style={{ color: '#94a3b8' }} /></span>
+                    <span style={{ color: '#94a3b8' }}>Finalizado</span>
+                </button>
+            );
+        } else {
+            buttonContent = (
                 <div className="checkin-completed-badge">
                     <CheckCircle2 size={16} />
                     Turno Finalizado
@@ -279,15 +335,13 @@ export default function FloatingCheckIn({ user, variant = 'floating' }) {
                            backdrop-filter: blur(8px);
                            z-index: 90;
                        }
-                   `}</style>
+                    `}</style>
                 </div>
             );
         }
-    }
-
-    if (!isVisible) {
+    } else if (!isVisible) {
         if (isNav) {
-            return (
+            buttonContent = (
                 <button type="button" disabled style={navButtonStyle('#94a3b8', true)}>
                     <span style={navCircleStyle('#e2e8f0', true)}>
                         <Icon size={24} style={{ color: '#94a3b8' }} />
@@ -295,36 +349,17 @@ export default function FloatingCheckIn({ user, variant = 'floating' }) {
                     <span style={{ color: '#94a3b8' }}>Em turno</span>
                 </button>
             );
+        } else {
+            buttonContent = (
+                <div className="fab-checkin" style={{ background: '#e2e8f0', color: '#94a3b8', cursor: 'not-allowed' }}>
+                    <Icon size={24} />
+                    <span className="fab-label">Em turno</span>
+                </div>
+            );
         }
-        return (
-            <div className="fab-checkin" style={{ background: '#e2e8f0', color: '#94a3b8', cursor: 'not-allowed' }}>
-                <Icon size={24} />
-                <span className="fab-label">Em turno</span>
-            </div>
-        );
-    }
-
-    // Lateness logic for Modal
-    const isLate = () => {
-        if (currentAction !== 'ENTRY') return false;
-        const h = currentTime.getHours();
-        const m = currentTime.getMinutes();
-        const total = h * 60 + m;
-        // Business Rules: Day until 9:15, Night until 15:15
-        if (total < 13 * 60) return total > (9 * 60 + 15);
-        return total > (15 * 60 + 15);
-    };
-
-    const actionNames = {
-        'ENTRY': 'Entrada no Turno',
-        'BREAK_START': 'Saída para Intervalo',
-        'BREAK_END': 'Retorno do Intervalo',
-        'EXIT': 'Saída do Turno'
-    };
-
-    return (
-        <>
-            {isNav && (
+    } else {
+        if (isNav) {
+            buttonContent = (
                 <button
                     type="button"
                     onClick={() => { setError(null); setIsModalOpen(true); }}
@@ -336,81 +371,87 @@ export default function FloatingCheckIn({ user, variant = 'floating' }) {
                     </span>
                     <span>{label}</span>
                 </button>
-            )}
-            {!isNav && (
-            <button
-                className={`fab-checkin ${actionLoading ? 'loading' : ''} ${currentAction === 'BREAK_END' ? 'break-countdown' : ''}`}
-                onClick={() => {
-                    setError(null);
-                    setIsModalOpen(true);
-                }}
-                disabled={actionLoading}
-            >
-                {actionLoading ? (
-                    <Loader2 size={24} className="animate-spin" />
-                ) : (
-                    <>
-                        <Icon size={24} />
-                        <span className="fab-label">{label}</span>
-                    </>
-                )}
+            );
+        } else {
+            buttonContent = (
+                <button
+                    className={`fab-checkin ${actionLoading ? 'loading' : ''} ${currentAction === 'BREAK_END' ? 'break-countdown' : ''}`}
+                    onClick={() => {
+                        setError(null);
+                        setIsModalOpen(true);
+                    }}
+                    disabled={actionLoading}
+                >
+                    {actionLoading ? (
+                        <Loader2 size={24} className="animate-spin" />
+                    ) : (
+                        <>
+                            <Icon size={24} />
+                            <span className="fab-label">{label}</span>
+                        </>
+                    )}
 
-                <style jsx>{`
-                    .fab-checkin {
-                        position: fixed;
-                        bottom: 24px;
-                        right: 24px;
-                        height: 56px;
-                        min-width: 56px;
-                        border-radius: 28px;
-                        background: ${bgColor};
-                        color: black;
-                        border: none;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 0 20px;
-                        gap: 10px;
-                        cursor: pointer;
-                        box-shadow: 0 8px 16px #f1f5f9, inset 0 2px 4px rgba(255,255,255,0.3);
-                        z-index: 1000;
-                        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                        font-weight: 800;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                        font-size: 0.85rem;
-                    }
-                    .fab-checkin:hover {
-                        transform: translateY(-4px) scale(1.02);
-                        box-shadow: 0 12px 20px #f1f5f9;
-                        filter: brightness(1.1);
-                    }
-                    .fab-checkin:active {
-                        transform: translateY(0) scale(0.95);
-                    }
-                    .fab-checkin.loading {
-                        opacity: 0.8;
-                        width: 56px;
-                        padding: 0;
-                    }
-                    @media (max-width: 600px) {
-                        .fab-checkin:not(.break-countdown) .fab-label {
-                            display: none;
+                    <style jsx>{`
+                        .fab-checkin {
+                            position: fixed;
+                            bottom: 24px;
+                            right: 24px;
+                            height: 56px;
+                            min-width: 56px;
+                            border-radius: 28px;
+                            background: ${bgColor};
+                            color: black;
+                            border: none;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            padding: 0 20px;
+                            gap: 10px;
+                            cursor: pointer;
+                            box-shadow: 0 8px 16px #f1f5f9, inset 0 2px 4px rgba(255,255,255,0.3);
+                            z-index: 1000;
+                            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                            font-weight: 800;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            font-size: 0.85rem;
                         }
-                        .fab-checkin:not(.break-countdown) {
-                            padding: 0;
+                        .fab-checkin:hover {
+                            transform: translateY(-4px) scale(1.02);
+                            box-shadow: 0 12px 20px #f1f5f9;
+                            filter: brightness(1.1);
+                        }
+                        .fab-checkin:active {
+                            transform: translateY(0) scale(0.95);
+                        }
+                        .fab-checkin.loading {
+                            opacity: 0.8;
                             width: 56px;
+                            padding: 0;
                         }
-                        .fab-checkin.break-countdown {
-                            width: auto;
-                            min-width: 150px;
-                            padding: 0 16px;
+                        @media (max-width: 600px) {
+                            .fab-checkin:not(.break-countdown) .fab-label {
+                                display: none;
+                            }
+                            .fab-checkin:not(.break-countdown) {
+                                padding: 0;
+                                width: 56px;
+                            }
+                            .fab-checkin.break-countdown {
+                                width: auto;
+                                min-width: 150px;
+                                padding: 0 16px;
+                            }
                         }
-                    }
-                `}</style>
-            </button>
-            )}
+                    `}</style>
+                </button>
+            );
+        }
+    }
 
+    return (
+        <>
+            {buttonContent}
             {/* Confirmation Modal */}
             {isModalOpen && createPortal(
                 <div
@@ -527,7 +568,7 @@ export default function FloatingCheckIn({ user, variant = 'floating' }) {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        zIndex: 3000,
+                        zIndex: 99999,
                         padding: 24
                     }}
                 >

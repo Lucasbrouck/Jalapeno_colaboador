@@ -43,6 +43,11 @@ export default function PlataWallet({ userId }) {
 
     useEffect(() => {
         fetchData();
+        const handlePlataUpdate = () => {
+            fetchData();
+        };
+        window.addEventListener('plata_balance_updated', handlePlataUpdate);
+        return () => window.removeEventListener('plata_balance_updated', handlePlataUpdate);
     }, [userId]);
 
     const handleTransferSuccess = async () => {
