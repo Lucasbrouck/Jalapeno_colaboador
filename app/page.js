@@ -758,6 +758,62 @@ function CollaboratorBankApp() {
                     </div>
                 )}
 
+                {/* CANAL DE ESCUTA E DENÚNCIA BANNER (NR-1 & NR-5) */}
+                <div style={{ padding: '10px 16px 0' }}>
+                    <div
+                        onClick={() => router.push('/canal-escuta')}
+                        style={{
+                            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                            color: '#ffffff',
+                            borderRadius: 18,
+                            padding: '13px 16px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            boxShadow: '0 6px 18px rgba(15, 23, 42, 0.12)',
+                            border: '1px solid #334155'
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div style={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: 12,
+                                background: 'rgba(16, 185, 129, 0.18)',
+                                color: '#34d399',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                            }}>
+                                <ShieldCheck size={20} />
+                            </div>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                    <span style={{ fontWeight: 800, fontSize: '0.84rem', color: '#ffffff' }}>
+                                        Canal de Escuta & Denúncia
+                                    </span>
+                                    <span style={{
+                                        background: 'rgba(16, 185, 129, 0.2)',
+                                        color: '#6ee7b7',
+                                        fontSize: '0.62rem',
+                                        fontWeight: 800,
+                                        padding: '2px 7px',
+                                        borderRadius: 999
+                                    }}>
+                                        NR-1 & NR-5 · Sigilo Auditável
+                                    </span>
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 2 }}>
+                                    Relatos anônimos (100% desvinculados da sua conta) ou identificados
+                                </div>
+                            </div>
+                        </div>
+                        <ChevronRight size={18} color="#34d399" />
+                    </div>
+                </div>
+
                 {/* MAIN CONTENT AREA */}
                 <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {activeSection === 'PLATA' ? (

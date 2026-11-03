@@ -162,8 +162,15 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         if (!loading) {
-            const publicRoutes = ['/login', '/reset-password', '/auth/link-account'];
-            const isPublicRoute = publicRoutes.some(r => pathname === r || pathname.startsWith(r + '/'));
+            const publicRoutes = ['/login', '/reset-password', '/auth/link-account', '/canal-escuta', '/ouvidoria', '/denuncia', '/protocolo'];
+            const isDirectProtocolUrl = Boolean(
+                pathname &&
+                pathname !== '/' &&
+                !pathname.startsWith('/dashboard') &&
+                !pathname.startsWith('/admin') &&
+                /^\/(JLP[-_]?|PROTOCOLO[-_]?)?[0-9]{6,16}$/i.test(pathname)
+            );
+            const isPublicRoute = isDirectProtocolUrl || publicRoutes.some(r => pathname === r || pathname.startsWith(r + '/'));
 
             if (!user && !isPublicRoute) {
                 router.push('/login');

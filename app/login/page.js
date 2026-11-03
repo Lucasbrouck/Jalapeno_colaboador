@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
-import { X, ArrowRight, ArrowLeft, Building2, Flame, CheckCircle2 } from 'lucide-react';
+import { X, ArrowRight, ArrowLeft, Building2, Flame, CheckCircle2, ShieldCheck, Lock, Search } from 'lucide-react';
+import Link from 'next/link';
 import CaJaLoginButton from '@/app/components/CaJaLoginButton';
 
 function LoginContent() {
@@ -293,6 +294,95 @@ function LoginContent() {
               >
                 Primeiro acesso? <span style={{ color: '#ea580c', fontWeight: 800 }}>Ativar minha conta</span>
               </button>
+            </div>
+          </div>
+
+          {/* CANAL DE ESCUTA E DENÚNCIA (NR-1 & NR-5) — ACESSO SEM LOGIN */}
+          <div style={{
+            marginTop: 16,
+            background: '#0f172a',
+            color: '#f8fafc',
+            borderRadius: 22,
+            padding: '20px',
+            boxShadow: '0 10px 28px rgba(15, 23, 42, 0.14)',
+            border: '1px solid #1e293b'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: 'rgba(16, 185, 129, 0.18)',
+                color: '#34d399',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <ShieldCheck size={22} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff' }}>
+                    Canal de Escuta e Denúncia
+                  </span>
+                  <span style={{
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    color: '#6ee7b7',
+                    fontSize: '0.64rem',
+                    fontWeight: 800,
+                    padding: '2px 7px',
+                    borderRadius: 999
+                  }}>
+                    NR-1 & NR-5 · Sem Login
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '4px 0 0', lineHeight: 1.4 }}>
+                  Faça relatos <strong>100% anônimos</strong> ou identificados sem precisar entrar na sua conta, ou acompanhe seu protocolo.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 8 }}>
+              <Link
+                href="/canal-escuta"
+                style={{
+                  background: '#059669',
+                  color: 'white',
+                  textDecoration: 'none',
+                  padding: '11px 12px',
+                  borderRadius: 12,
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  textAlign: 'center'
+                }}
+              >
+                <Lock size={14} /> Fazer Relato
+              </Link>
+              <Link
+                href="/canal-escuta?tab=consultar"
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  color: '#e2e8f0',
+                  textDecoration: 'none',
+                  padding: '11px 12px',
+                  borderRadius: 12,
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  textAlign: 'center',
+                  border: '1px solid rgba(255,255,255,0.15)'
+                }}
+              >
+                <Search size={14} /> Protocolo
+              </Link>
             </div>
           </div>
         </div>

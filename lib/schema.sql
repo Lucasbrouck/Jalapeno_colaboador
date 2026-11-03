@@ -310,3 +310,53 @@ CREATE INDEX IF NOT EXISTS idx_disciplinary_records_user ON disciplinary_records
 CREATE INDEX IF NOT EXISTS idx_disciplinary_records_company ON disciplinary_records(company_id);
 CREATE INDEX IF NOT EXISTS idx_disciplinary_records_date ON disciplinary_records(date);
 
+
+-- Canal de Escuta e Denuncia (NR-1 e NR-5 / Lei 14.457/2022)
+CREATE TABLE IF NOT EXISTS whistleblower_reports (
+  id TEXT PRIMARY KEY,
+  protocol TEXT UNIQUE NOT NULL,
+  is_anonymous INTEGER NOT NULL DEFAULT 1,
+  reporter_user_id TEXT,
+  reporter_name TEXT,
+  reporter_contact TEXT,
+  reporter_role TEXT,
+  company_id TEXT,
+  norm_reference TEXT NOT NULL DEFAULT 'NR5',
+  category TEXT NOT NULL,
+  severity TEXT DEFAULT 'MEDIUM',
+  title TEXT,
+  description TEXT NOT NULL,
+  incident_date TEXT,
+  incident_location TEXT,
+  involved_people TEXT,
+  witnesses_info TEXT,
+  evidence_attachment TEXT,
+  anonymity_hash TEXT,
+  status TEXT NOT NULL DEFAULT 'NEW',
+  internal_notes TEXT,
+  action_plan TEXT,
+  resolution_summary TEXT,
+  assigned_to TEXT,
+  sla_due_date TEXT,
+  resolved_at TEXT,
+  createdAt TEXT DEFAULT (datetime('now')),
+  updatedAt TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS whistleblower_messages (
+  id TEXT PRIMARY KEY,
+  report_id TEXT NOT NULL,
+  protocol TEXT NOT NULL,
+  sender_type TEXT NOT NULL,
+  sender_label TEXT,
+  message TEXT NOT NULL,
+  attachment_url TEXT,
+  createdAt TEXT DEFAULT (datetime('now')),
+  FOREIGN KEY (report_id) REFERENCES whistleblower_reports(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_wb_reports_protocol ON whistleblower_reports(protocol);
+CREATE INDEX IF NOT EXISTS idx_wb_reports_company ON whistleblower_reports(company_id);
+CREATE INDEX IF NOT EXISTS idx_wb_reports_status ON whistleblower_reports(status);
+CREATE INDEX IF NOT EXISTS idx_wb_messages_report ON whistleblower_messages(report_id);
+CREATE INDEX IF NOT EXISTS idx_wb_messages_protocol ON whistleblower_messages(protocol);
