@@ -697,8 +697,8 @@ function CollaboratorBankApp() {
                     }}
                     style={{
                         display: 'flex',
-                        gap: 12,
-                        padding: '16px 16px 10px',
+                        gap: 14,
+                        padding: '14px 16px 2px',
                         overflowX: 'auto',
                         WebkitOverflowScrolling: 'touch',
                         scrollbarWidth: 'none',
@@ -732,13 +732,12 @@ function CollaboratorBankApp() {
                                     else setActiveSection(action.id);
                                 }}
                                 style={{
-                                    flex: '0 0 calc((100% - 42px) / 4.45)',
-                                    minWidth: 74,
+                                    flex: '0 0 calc((100% - 56px) / 4.5)',
                                     scrollSnapAlign: 'start',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     alignItems: 'center',
-                                    gap: 7,
+                                    gap: 6,
                                     background: 'none',
                                     border: 'none',
                                     padding: 0,
@@ -746,9 +745,9 @@ function CollaboratorBankApp() {
                                 }}
                             >
                                 <div style={{
-                                    width: 60,
-                                    height: 60,
-                                    borderRadius: 20,
+                                    width: '100%',
+                                    height: 62,
+                                    borderRadius: 18,
                                     background: isActive ? '#ea580c' : '#ffffff',
                                     color: isActive ? '#ffffff' : '#ea580c',
                                     display: 'flex',
@@ -760,7 +759,7 @@ function CollaboratorBankApp() {
                                     border: isActive ? 'none' : '1px solid #f1f5f9',
                                     transition: 'all 0.15s ease'
                                 }}>
-                                    <Icon size={24} />
+                                    <Icon size={22} />
                                 </div>
                                 <span style={{
                                     fontSize: '0.72rem',
