@@ -663,13 +663,51 @@ function CollaboratorBankApp() {
                     </div>
                 </div>
 
-                {/* SUPER APP QUICK ACTION SQUIRCLES (BANCO INTER STYLE) */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(6, 1fr)',
-                    gap: 6,
-                    padding: '16px 14px 8px'
-                }}>
+                {/* SUPER APP QUICK ACTION SQUIRCLES (CARROSSEL HORIZONTAL TÁTIL — ~4.5 BOTÕES VISÍVEIS) */}
+                <style>{`
+                    .quick-actions-carousel::-webkit-scrollbar {
+                        display: none;
+                    }
+                `}</style>
+                <div
+                    className="quick-actions-carousel"
+                    onMouseDown={e => {
+                        const el = e.currentTarget;
+                        el.dataset.dragging = 'true';
+                        el.dataset.dragMoved = 'false';
+                        el.dataset.startX = String(e.pageX - el.offsetLeft);
+                        el.dataset.scrollLeft = String(el.scrollLeft);
+                    }}
+                    onMouseLeave={e => {
+                        e.currentTarget.dataset.dragging = 'false';
+                    }}
+                    onMouseUp={e => {
+                        e.currentTarget.dataset.dragging = 'false';
+                    }}
+                    onMouseMove={e => {
+                        const el = e.currentTarget;
+                        if (el.dataset.dragging !== 'true') return;
+                        const x = e.pageX - el.offsetLeft;
+                        const walk = x - Number(el.dataset.startX || 0);
+                        if (Math.abs(walk) > 5) {
+                            el.dataset.dragMoved = 'true';
+                            e.preventDefault();
+                            el.scrollLeft = Number(el.dataset.scrollLeft || 0) - walk;
+                        }
+                    }}
+                    style={{
+                        display: 'flex',
+                        gap: 12,
+                        padding: '16px 16px 10px',
+                        overflowX: 'auto',
+                        WebkitOverflowScrolling: 'touch',
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                        scrollSnapType: 'x proximity',
+                        userSelect: 'none',
+                        cursor: 'grab'
+                    }}
+                >
                     {[
                         { id: 'WEEKS', label: 'Semanas', icon: Target },
                         { id: 'STATEMENT', label: 'Extrato', icon: Receipt },
@@ -684,12 +722,23 @@ function CollaboratorBankApp() {
                             <button
                                 key={action.id}
                                 type="button"
-                                onClick={action.onClick || (() => setActiveSection(action.id))}
+                                onClick={e => {
+                                    const container = e.currentTarget.parentElement;
+                                    if (container?.dataset.dragMoved === 'true') {
+                                        container.dataset.dragMoved = 'false';
+                                        return;
+                                    }
+                                    if (action.onClick) action.onClick();
+                                    else setActiveSection(action.id);
+                                }}
                                 style={{
+                                    flex: '0 0 calc((100% - 42px) / 4.45)',
+                                    minWidth: 74,
+                                    scrollSnapAlign: 'start',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     alignItems: 'center',
-                                    gap: 6,
+                                    gap: 7,
                                     background: 'none',
                                     border: 'none',
                                     padding: 0,
@@ -697,9 +746,9 @@ function CollaboratorBankApp() {
                                 }}
                             >
                                 <div style={{
-                                    width: 52,
-                                    height: 52,
-                                    borderRadius: 18,
+                                    width: 60,
+                                    height: 60,
+                                    borderRadius: 20,
                                     background: isActive ? '#ea580c' : '#ffffff',
                                     color: isActive ? '#ffffff' : '#ea580c',
                                     display: 'flex',
@@ -711,14 +760,15 @@ function CollaboratorBankApp() {
                                     border: isActive ? 'none' : '1px solid #f1f5f9',
                                     transition: 'all 0.15s ease'
                                 }}>
-                                    <Icon size={21} />
+                                    <Icon size={24} />
                                 </div>
                                 <span style={{
-                                    fontSize: '0.68rem',
+                                    fontSize: '0.72rem',
                                     fontWeight: isActive ? 800 : 700,
                                     color: isActive ? '#ea580c' : '#334155',
                                     textAlign: 'center',
-                                    lineHeight: 1.15
+                                    lineHeight: 1.15,
+                                    whiteSpace: 'nowrap'
                                 }}>
                                     {action.label}
                                 </span>
