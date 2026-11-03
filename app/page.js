@@ -697,13 +697,12 @@ function CollaboratorBankApp() {
                     }}
                     style={{
                         display: 'flex',
-                        gap: 14,
-                        padding: '14px 16px 2px',
+                        gap: 12,
+                        padding: '14px 16px 2px 16px',
                         overflowX: 'auto',
                         WebkitOverflowScrolling: 'touch',
                         scrollbarWidth: 'none',
                         msOverflowStyle: 'none',
-                        scrollSnapType: 'x proximity',
                         userSelect: 'none',
                         cursor: 'grab'
                     }}
@@ -732,8 +731,7 @@ function CollaboratorBankApp() {
                                     else setActiveSection(action.id);
                                 }}
                                 style={{
-                                    flex: '0 0 calc((100% - 56px) / 4.5)',
-                                    scrollSnapAlign: 'start',
+                                    flex: '0 0 calc((100% - 48px) / 4.5)',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     alignItems: 'center',
