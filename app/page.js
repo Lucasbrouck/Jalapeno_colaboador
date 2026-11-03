@@ -666,16 +666,17 @@ function CollaboratorBankApp() {
                 {/* SUPER APP QUICK ACTION SQUIRCLES (BANCO INTER STYLE) */}
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(5, 1fr)',
-                    gap: 8,
-                    padding: '16px 16px 8px'
+                    gridTemplateColumns: 'repeat(6, 1fr)',
+                    gap: 6,
+                    padding: '16px 14px 8px'
                 }}>
                     {[
                         { id: 'WEEKS', label: 'Semanas', icon: Target },
                         { id: 'STATEMENT', label: 'Extrato', icon: Receipt },
                         { id: 'PLATA', label: 'Platas', icon: Coins },
                         { id: 'RH', label: 'Atestados', icon: ClipboardList },
-                        { id: 'CAREER', label: 'Carreira', icon: GraduationCap, onClick: () => setActiveSection('CAREER') }
+                        { id: 'CAREER', label: 'Carreira', icon: GraduationCap, onClick: () => setActiveSection('CAREER') },
+                        { id: 'ESCUTA', label: 'Canal de Escuta', icon: ShieldCheck, onClick: () => router.push('/canal-escuta') }
                     ].map(action => {
                         const Icon = action.icon;
                         const isActive = activeSection === action.id;
@@ -696,8 +697,8 @@ function CollaboratorBankApp() {
                                 }}
                             >
                                 <div style={{
-                                    width: 56,
-                                    height: 56,
+                                    width: 52,
+                                    height: 52,
                                     borderRadius: 18,
                                     background: isActive ? '#ea580c' : '#ffffff',
                                     color: isActive ? '#ffffff' : '#ea580c',
@@ -710,12 +711,14 @@ function CollaboratorBankApp() {
                                     border: isActive ? 'none' : '1px solid #f1f5f9',
                                     transition: 'all 0.15s ease'
                                 }}>
-                                    <Icon size={22} />
+                                    <Icon size={21} />
                                 </div>
                                 <span style={{
-                                    fontSize: '0.71rem',
+                                    fontSize: '0.68rem',
                                     fontWeight: isActive ? 800 : 700,
-                                    color: isActive ? '#ea580c' : '#334155'
+                                    color: isActive ? '#ea580c' : '#334155',
+                                    textAlign: 'center',
+                                    lineHeight: 1.15
                                 }}>
                                     {action.label}
                                 </span>
@@ -757,62 +760,6 @@ function CollaboratorBankApp() {
                         </div>
                     </div>
                 )}
-
-                {/* CANAL DE ESCUTA E DENÚNCIA BANNER (NR-1 & NR-5) */}
-                <div style={{ padding: '10px 16px 0' }}>
-                    <div
-                        onClick={() => router.push('/canal-escuta')}
-                        style={{
-                            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                            color: '#ffffff',
-                            borderRadius: 18,
-                            padding: '13px 16px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            cursor: 'pointer',
-                            boxShadow: '0 6px 18px rgba(15, 23, 42, 0.12)',
-                            border: '1px solid #334155'
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <div style={{
-                                width: 38,
-                                height: 38,
-                                borderRadius: 12,
-                                background: 'rgba(16, 185, 129, 0.18)',
-                                color: '#34d399',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0
-                            }}>
-                                <ShieldCheck size={20} />
-                            </div>
-                            <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                    <span style={{ fontWeight: 800, fontSize: '0.84rem', color: '#ffffff' }}>
-                                        Canal de Escuta & Denúncia
-                                    </span>
-                                    <span style={{
-                                        background: 'rgba(16, 185, 129, 0.2)',
-                                        color: '#6ee7b7',
-                                        fontSize: '0.62rem',
-                                        fontWeight: 800,
-                                        padding: '2px 7px',
-                                        borderRadius: 999
-                                    }}>
-                                        NR-1 & NR-5 · Sigilo Auditável
-                                    </span>
-                                </div>
-                                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 2 }}>
-                                    Relatos anônimos (100% desvinculados da sua conta) ou identificados
-                                </div>
-                            </div>
-                        </div>
-                        <ChevronRight size={18} color="#34d399" />
-                    </div>
-                </div>
 
                 {/* MAIN CONTENT AREA */}
                 <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>

@@ -297,91 +297,75 @@ function LoginContent() {
             </div>
           </div>
 
-          {/* CANAL DE ESCUTA E DENÚNCIA (NR-1 & NR-5) — ACESSO SEM LOGIN */}
+          {/* CANAL DE ESCUTA — PEQUENO CARD COM O MESMO DESIGN DA PÁGINA */}
           <div style={{
-            marginTop: 16,
-            background: '#0f172a',
-            color: '#f8fafc',
-            borderRadius: 22,
-            padding: '20px',
-            boxShadow: '0 10px 28px rgba(15, 23, 42, 0.14)',
-            border: '1px solid #1e293b'
+            marginTop: 12,
+            background: '#ffffff',
+            borderRadius: 20,
+            padding: '14px 18px',
+            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.05)',
+            border: '1px solid #f1f5f9',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12
           }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 borderRadius: 12,
-                background: 'rgba(16, 185, 129, 0.18)',
-                color: '#34d399',
+                background: '#fff7ed',
+                color: '#ea580c',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <ShieldCheck size={22} />
+                <ShieldCheck size={18} />
               </div>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#ffffff' }}>
-                    Canal de Escuta e Denúncia
-                  </span>
-                  <span style={{
-                    background: 'rgba(16, 185, 129, 0.2)',
-                    color: '#6ee7b7',
-                    fontSize: '0.64rem',
-                    fontWeight: 800,
-                    padding: '2px 7px',
-                    borderRadius: 999
-                  }}>
-                    NR-1 & NR-5 · Sem Login
-                  </span>
+                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>
+                  Canal de Escuta
                 </div>
-                <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '4px 0 0', lineHeight: 1.4 }}>
-                  Faça relatos <strong>100% anônimos</strong> ou identificados sem precisar entrar na sua conta, ou acompanhe seu protocolo.
-                </p>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  Relatos anônimos ou protocolo
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Link
                 href="/canal-escuta"
                 style={{
-                  background: '#059669',
-                  color: 'white',
+                  background: '#fff7ed',
+                  color: '#ea580c',
+                  border: '1px solid #fed7aa',
                   textDecoration: 'none',
-                  padding: '11px 12px',
-                  borderRadius: 12,
-                  fontSize: '0.78rem',
+                  padding: '7px 11px',
+                  borderRadius: 10,
+                  fontSize: '0.74rem',
                   fontWeight: 800,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  textAlign: 'center'
+                  whiteSpace: 'nowrap'
                 }}
               >
-                <Lock size={14} /> Fazer Relato
+                Acessar
               </Link>
               <Link
                 href="/canal-escuta?tab=consultar"
                 style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  color: '#e2e8f0',
+                  background: '#f8fafc',
+                  color: '#475569',
+                  border: '1px solid #e2e8f0',
                   textDecoration: 'none',
-                  padding: '11px 12px',
-                  borderRadius: 12,
-                  fontSize: '0.78rem',
+                  padding: '7px 10px',
+                  borderRadius: 10,
+                  fontSize: '0.74rem',
                   fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  textAlign: 'center',
-                  border: '1px solid rgba(255,255,255,0.15)'
+                  whiteSpace: 'nowrap'
                 }}
               >
-                <Search size={14} /> Protocolo
+                Protocolo
               </Link>
             </div>
           </div>
