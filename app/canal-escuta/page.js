@@ -93,7 +93,7 @@ const CATEGORIES = [
 ];
 
 function CanalEscutaContent() {
-    const { user: authUser, logout, companies = [] } = useAuth();
+    const { user: authUser, loading: authLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -103,7 +103,6 @@ function CanalEscutaContent() {
 
     // Form fields
     const [selectedCategory, setSelectedCategory] = useState('ASSEDIO_MORAL');
-    const [companyId, setCompanyId] = useState('');
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [incidentDate, setIncidentDate] = useState('');
@@ -128,13 +127,30 @@ function CanalEscutaContent() {
     const [lookupInput, setLookupInput] = useState(searchParams.get('protocolo') || '');
     const [lookupError, setLookupError] = useState('');
 
+    useEffect(() => {
+        if (!authLoading && !authUser) {
+            router.push('/login');
+        }
+    }, [authLoading, authUser, router]);
+
+    // Automatic routing to the user's unit channel (even when anonymous)
+    const userCompanyId = useMemo(() => {
+        if (!authUser) return null;
+        if (authUser.company_id) {
+            return String(authUser.company_id).split(',')[0].trim() || null;
+        }
+        if (Array.isArray(authUser.company_ids) && authUser.company_ids.length > 0) {
+            return authUser.company_ids[0];
+        }
+        return null;
+    }, [authUser]);
+
     // Pre-fill identified fields when user explicitly switches to Identified mode and is logged in
     useEffect(() => {
         if (!isAnonymous && authUser) {
             if (!reporterName) setReporterName(authUser.name || '');
             if (!reporterContact) setReporterContact(authUser.email || '');
             if (!reporterRole) setReporterRole(authUser.role === 'manager' ? 'Gerente / Liderança' : 'Colaborador(a)');
-            if (!companyId && authUser.company_id) setCompanyId(authUser.company_id);
         }
     }, [isAnonymous, authUser]);
 
@@ -155,7 +171,7 @@ function CanalEscutaContent() {
             ip_address_tracked: false,
             norm_reference: currentCatMeta.norm,
             category: selectedCategory,
-            company_id: companyId || null,
+            company_id: userCompanyId,
             incident_date: incidentDate || null,
             incident_location: incidentLocation || null,
             involved_people: involvedPeople || null,
@@ -169,7 +185,7 @@ function CanalEscutaContent() {
         reporterRole,
         currentCatMeta,
         selectedCategory,
-        companyId,
+        userCompanyId,
         incidentDate,
         incidentLocation,
         involvedPeople,
@@ -189,12 +205,6 @@ function CanalEscutaContent() {
             setAttachmentName(file.name);
         };
         reader.readAsDataURL(file);
-    };
-
-    const handleLogoutToPureAnonymous = () => {
-        document.cookie = 'session=; path=/; max-age=0';
-        try { localStorage.removeItem('user'); } catch (_) {}
-        window.location.href = '/canal-escuta?modo=deslogado';
     };
 
     const handleSubmit = async (e) => {
@@ -219,7 +229,7 @@ function CanalEscutaContent() {
                 reporter_name: isAnonymous ? null : reporterName.trim(),
                 reporter_contact: isAnonymous ? null : reporterContact.trim(),
                 reporter_role: isAnonymous ? null : reporterRole.trim(),
-                company_id: companyId || null,
+                company_id: userCompanyId,
                 norm_reference: currentCatMeta.norm,
                 category: selectedCategory,
                 title: title.trim() || currentCatMeta.label,
@@ -279,6 +289,14 @@ function CanalEscutaContent() {
         setTimeout(() => setCopied(false), 3000);
     };
 
+    if (authLoading || !authUser) {
+        return (
+            <div style={{ minHeight: '100vh', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, color: '#64748b', fontWeight: 700 }}>
+                Carregando Canal de Escuta...
+            </div>
+        );
+    }
+
     return (
         <div style={{ minHeight: '100vh', background: '#f1f5f9', paddingBottom: 48 }}>
             <div style={{ maxWidth: 620, margin: '0 auto' }}>
@@ -293,7 +311,7 @@ function CanalEscutaContent() {
                 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                         <Link
-                            href={authUser ? '/' : '/login'}
+                            href="/"
                             style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -308,7 +326,7 @@ function CanalEscutaContent() {
                             }}
                         >
                             <ArrowLeft size={15} />
-                            {authUser ? 'Voltar ao App' : 'Área de Login'}
+                            Voltar ao App
                         </Link>
 
                         <div style={{
@@ -786,14 +804,10 @@ function CanalEscutaContent() {
                                                 </div>
                                                 <div>
                                                     <div style={{ fontWeight: 800, fontSize: '0.84rem', color: '#34d399' }}>
-                                                        {authUser
-                                                            ? `Blindagem Ativa: Sua conta (${authUser.name.split(' ')[0]}) está DESVINCULADA deste envio`
-                                                            : 'Canal Público Deslogado: Você não está autenticado em nenhuma conta'}
+                                                        {`Blindagem Ativa: Sua conta (${authUser.name.split(' ')[0]}) está DESVINCULADA deste envio`}
                                                     </div>
                                                     <p style={{ fontSize: '0.73rem', color: '#cbd5e1', margin: '4px 0 0', lineHeight: 1.4 }}>
-                                                        {authUser
-                                                            ? 'Mesmo com o app aberto, este formulário usa isolamento de sessão (credentials: omit). Seu ID, nome, e-mail e IP são descartados antes do envio.'
-                                                            : 'Você está utilizando o canal externo sem login. Nenhum dado pessoal, cookie ou endereço IP é coletado.'}
+                                                        Mesmo logado no app, este formulário usa isolamento de sessão (credentials: omit). Seu ID, nome, e-mail e IP são descartados antes do envio.
                                                     </p>
                                                 </div>
                                             </div>
@@ -846,29 +860,6 @@ function CanalEscutaContent() {
                                                 <Code2 size={14} />
                                                 {showTechnicalProof ? 'Ocultar Pacote Técnico (JSON)' : 'Comprovar: Ver Pacote de Envio (JSON)'}
                                             </button>
-
-                                            {authUser && (
-                                                <button
-                                                    type="button"
-                                                    onClick={handleLogoutToPureAnonymous}
-                                                    style={{
-                                                        background: 'rgba(234, 88, 12, 0.2)',
-                                                        color: '#fdba74',
-                                                        border: '1px solid rgba(234, 88, 12, 0.4)',
-                                                        borderRadius: 8,
-                                                        padding: '6px 10px',
-                                                        fontSize: '0.71rem',
-                                                        fontWeight: 700,
-                                                        cursor: 'pointer',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: 5
-                                                    }}
-                                                >
-                                                    <LogOut size={13} />
-                                                    Prefere sair da conta antes? Abrir Canal Deslogado
-                                                </button>
-                                            )}
                                         </div>
 
                                         {showTechnicalProof && (
@@ -1050,22 +1041,6 @@ function CanalEscutaContent() {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
                                     <div>
                                         <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                            <Building2 size={13} /> Unidade / Loja (Opcional)
-                                        </label>
-                                        <select
-                                            className="input-field"
-                                            value={companyId}
-                                            onChange={e => setCompanyId(e.target.value)}
-                                            style={{ borderRadius: 10 }}
-                                        >
-                                            <option value="">Não informar / Geral</option>
-                                            {companies.map(c => (
-                                                <option key={c.id} value={c.id}>{c.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                             <Calendar size={13} /> Data Aproximada (Opcional)
                                         </label>
                                         <input
@@ -1076,9 +1051,6 @@ function CanalEscutaContent() {
                                             style={{ borderRadius: 10 }}
                                         />
                                     </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
                                     <div>
                                         <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                             <MapPin size={13} /> Setor / Turno / Local (Opcional)
@@ -1092,19 +1064,20 @@ function CanalEscutaContent() {
                                             style={{ borderRadius: 10 }}
                                         />
                                     </div>
-                                    <div>
-                                        <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                            <Users size={13} /> Envolvidos / Testemunhas (Opcional)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="input-field"
-                                            placeholder="Nomes ou cargos envolvidos"
-                                            value={involvedPeople}
-                                            onChange={e => setInvolvedPeople(e.target.value)}
-                                            style={{ borderRadius: 10 }}
-                                        />
-                                    </div>
+                                </div>
+
+                                <div className="input-group" style={{ marginBottom: 12 }}>
+                                    <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <Users size={13} /> Envolvidos / Testemunhas (Opcional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="input-field"
+                                        placeholder="Nomes ou cargos envolvidos"
+                                        value={involvedPeople}
+                                        onChange={e => setInvolvedPeople(e.target.value)}
+                                        style={{ borderRadius: 10 }}
+                                    />
                                 </div>
 
                                 {/* Optional Evidence Upload */}

@@ -7,6 +7,13 @@ export const metadata = {
   description: 'Portal do Colaborador Jalapeño: Prêmio Semanal, Turnos, Carteira Plata, Ponto e PDI',
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">

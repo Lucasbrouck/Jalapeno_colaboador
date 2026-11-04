@@ -255,6 +255,13 @@ a {
 }
 
 /* Inputs & Forms */
+input,
+select,
+textarea {
+  font-size: 16px;
+  touch-action: manipulation;
+}
+
 .input-group {
   margin-bottom: 16px;
 }
@@ -274,9 +281,10 @@ a {
   border: 1px solid var(--border-strong);
   border-radius: 10px;
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 16px; /* 16px evita zoom automático no iOS Safari e navegadores mobile */
   font-family: inherit;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  touch-action: manipulation;
 }
 
 .input-field:focus {
@@ -420,3 +428,14 @@ a {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* Previne zoom automático indesejado no iOS Safari e navegadores mobile */
+@media screen and (max-width: 768px) {
+  input,
+  select,
+  textarea,
+  .input-field {
+    font-size: 16px !important;
+  }
+}
+

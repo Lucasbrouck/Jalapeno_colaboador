@@ -311,19 +311,38 @@ function CollaboratorBankApp() {
         }
     };
 
-    const renderMultiplierPill = (mult, isPending, label) => {
+    const formatGoalSubtext = (metricCfg, suffix = '') => {
+        if (!metricCfg) return null;
+        const g = Number(metricCfg.goal || 0);
+        const s = Number(metricCfg.superGoal || 0);
+        if (g <= 0 && s <= 0) return null;
+        const fmt = (n) => `${Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}${suffix}`;
+        if (g > 0 && s > 0) return `M: ${fmt(g)} · S: ${fmt(s)}`;
+        if (g > 0) return `Meta: ${fmt(g)}`;
+        return `Super: ${fmt(s)}`;
+    };
+
+    const renderMultiplierPill = (mult, isPending, label, subtext = null) => {
         if (isPending) {
             return (
                 <div style={{
                     background: '#fff7ed',
                     border: '1px solid #ffedd5',
                     borderRadius: 12,
-                    padding: '8px 4px',
+                    padding: '7px 4px',
                     textAlign: 'center',
                     minWidth: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
                 }}>
                     <div style={{ fontSize: '0.66rem', color: '#9a3412', fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</div>
                     <div style={{ fontSize: '0.72rem', color: '#ea580c', fontWeight: 800, marginTop: 2, whiteSpace: 'nowrap' }}>Apura Seg.</div>
+                    {subtext && (
+                        <div style={{ fontSize: '0.54rem', color: '#9a3412', opacity: 0.72, fontWeight: 600, marginTop: 3, whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+                            {subtext}
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -338,12 +357,20 @@ function CollaboratorBankApp() {
                 background: cfg.bg,
                 border: `1px solid ${cfg.border}`,
                 borderRadius: 12,
-                    padding: '8px 4px',
+                padding: '7px 4px',
                 textAlign: 'center',
-                    minWidth: 0,
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center'
             }}>
                 <div style={{ fontSize: '0.66rem', color: '#475569', fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</div>
                 <div style={{ fontSize: '0.76rem', color: cfg.color, fontWeight: 800, marginTop: 2, whiteSpace: 'nowrap' }}>{cfg.text}</div>
+                {subtext && (
+                    <div style={{ fontSize: '0.54rem', color: '#64748b', opacity: 0.85, fontWeight: 600, marginTop: 3, whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
+                        {subtext}
+                    </div>
+                )}
             </div>
         );
     };
@@ -1107,9 +1134,24 @@ function CollaboratorBankApp() {
                                                         {/* 4 Multipliers */}
                                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
                                                             {renderMultiplierPill(wk.mRev, wk.isPendingApuracao, 'Fat. Sem.')}
-                                                            {renderMultiplierPill(wk.mCMV, wk.isPendingApuracao, wk.isPendingApuracao ? 'CMV' : (wk.cmv ? `CMV ${Number(wk.cmv).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : 'CMV'))}
-                                                            {renderMultiplierPill(wk.mRating, wk.isPendingApuracao, wk.isPendingApuracao ? 'Avaliação' : `Aval. ${wk.rating || ''}`)}
-                                                            {renderMultiplierPill(wk.mOps, wk.isPendingApuracao, wk.isPendingApuracao ? 'Operacional' : `Oper. ${wk.ops || ''}`)}
+                                                            {renderMultiplierPill(
+                                                                wk.mCMV,
+                                                                wk.isPendingApuracao,
+                                                                wk.isPendingApuracao ? 'CMV' : (wk.cmv ? `CMV ${Number(wk.cmv).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : 'CMV'),
+                                                                formatGoalSubtext(goalConfig?.CMV, '%')
+                                                            )}
+                                                            {renderMultiplierPill(
+                                                                wk.mRating,
+                                                                wk.isPendingApuracao,
+                                                                wk.isPendingApuracao ? 'Avaliação' : `Aval. ${wk.rating || ''}`,
+                                                                formatGoalSubtext(goalConfig?.RATING)
+                                                            )}
+                                                            {renderMultiplierPill(
+                                                                wk.mOps,
+                                                                wk.isPendingApuracao,
+                                                                wk.isPendingApuracao ? 'Operacional' : `Oper. ${wk.ops || ''}`,
+                                                                formatGoalSubtext(goalConfig?.OPS)
+                                                            )}
                                                         </div>
                                                     </div>
                                                 );
@@ -1275,9 +1317,9 @@ function CollaboratorBankApp() {
 
                                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
                                                                     {renderMultiplierPill(shift.calc.mRev, isPending, 'Fat. Sem.')}
-                                                                    {renderMultiplierPill(shift.calc.mCMV, isPending, 'CMV')}
-                                                                    {renderMultiplierPill(shift.calc.mRating, isPending, 'Aval.')}
-                                                                    {renderMultiplierPill(shift.calc.mOps, isPending, 'Oper.')}
+                                                                    {renderMultiplierPill(shift.calc.mCMV, isPending, 'CMV', formatGoalSubtext(goalConfig?.CMV, '%'))}
+                                                                    {renderMultiplierPill(shift.calc.mRating, isPending, 'Aval.', formatGoalSubtext(goalConfig?.RATING))}
+                                                                    {renderMultiplierPill(shift.calc.mOps, isPending, 'Oper.', formatGoalSubtext(goalConfig?.OPS))}
                                                                 </div>
                                                             </div>
                                                         )}

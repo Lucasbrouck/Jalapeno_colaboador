@@ -3,8 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
-import { X, ArrowRight, ArrowLeft, Building2, Flame, CheckCircle2, ShieldCheck, Lock, Search } from 'lucide-react';
-import Link from 'next/link';
+import { X, ArrowRight, ArrowLeft, Building2, Flame, CheckCircle2 } from 'lucide-react';
 import CaJaLoginButton from '@/app/components/CaJaLoginButton';
 
 function LoginContent() {
@@ -294,79 +293,6 @@ function LoginContent() {
               >
                 Primeiro acesso? <span style={{ color: '#ea580c', fontWeight: 800 }}>Ativar minha conta</span>
               </button>
-            </div>
-          </div>
-
-          {/* CANAL DE ESCUTA — PEQUENO CARD COM O MESMO DESIGN DA PÁGINA */}
-          <div style={{
-            marginTop: 12,
-            background: '#ffffff',
-            borderRadius: 20,
-            padding: '14px 18px',
-            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.05)',
-            border: '1px solid #f1f5f9',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 36,
-                height: 36,
-                borderRadius: 12,
-                background: '#fff7ed',
-                color: '#ea580c',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <ShieldCheck size={18} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '0.82rem', color: '#0f172a' }}>
-                  Canal de Escuta
-                </div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                  Relatos anônimos ou protocolo
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Link
-                href="/canal-escuta"
-                style={{
-                  background: '#fff7ed',
-                  color: '#ea580c',
-                  border: '1px solid #fed7aa',
-                  textDecoration: 'none',
-                  padding: '7px 11px',
-                  borderRadius: 10,
-                  fontSize: '0.74rem',
-                  fontWeight: 800,
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Acessar
-              </Link>
-              <Link
-                href="/canal-escuta?tab=consultar"
-                style={{
-                  background: '#f8fafc',
-                  color: '#475569',
-                  border: '1px solid #e2e8f0',
-                  textDecoration: 'none',
-                  padding: '7px 10px',
-                  borderRadius: 10,
-                  fontSize: '0.74rem',
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Protocolo
-              </Link>
             </div>
           </div>
         </div>
