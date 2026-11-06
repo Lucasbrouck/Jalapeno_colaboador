@@ -1,7 +1,21 @@
 import { NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import { join, dirname } from 'path';
-import { DB_PATH } from '@/lib/db';
+import { DB_PATH, getStoredFile, saveStoredFile } from '@/lib/db';
+
+function inferContentType(filename, storedType) {
+    if (storedType && storedType !== 'application/octet-stream') return storedType;
+    const ext = (filename || '').split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg'].includes(ext)) return 'image/jpeg';
+    if (ext === 'png') return 'image/png';
+    if (ext === 'webp') return 'image/webp';
+    if (ext === 'gif') return 'image/gif';
+    if (ext === 'heic') return 'image/heic';
+    if (ext === 'heif') return 'image/heif';
+    if (ext === 'pdf') return 'application/pdf';
+    return 'application/octet-stream';
+}
 
 export async function GET(req) {
     try {
@@ -12,19 +26,30 @@ export async function GET(req) {
             return new NextResponse('Arquivo não especificado', { status: 400 });
         }
 
-        const filePath = join(dirname(DB_PATH), 'uploads', 'absences', filename);
-        const data = await readFile(filePath);
+        let data = null;
+        let contentType = inferContentType(filename);
 
-        // Simple extension-based content type
-        const ext = filename.split('.').pop().toLowerCase();
-        let contentType = 'application/octet-stream';
-        if (['jpg', 'jpeg'].includes(ext)) contentType = 'image/jpeg';
-        else if (ext === 'png') contentType = 'image/png';
-        else if (ext === 'webp') contentType = 'image/webp';
-        else if (ext === 'gif') contentType = 'image/gif';
-        else if (ext === 'heic') contentType = 'image/heic';
-        else if (ext === 'heif') contentType = 'image/heif';
-        else if (ext === 'pdf') contentType = 'application/pdf';
+        // 1. Try persistent database storage first
+        const stored = await getStoredFile(filename);
+        if (stored && stored.buffer) {
+            data = stored.buffer;
+            contentType = inferContentType(filename, stored.contentType);
+        } else {
+            // 2. Fallback to local disk and auto-backfill DB
+            const absPath = join(dirname(DB_PATH), 'uploads', 'absences', filename);
+            const docPath = join(dirname(DB_PATH), 'uploads', 'documents', filename);
+            const foundPath = existsSync(absPath) ? absPath : (existsSync(docPath) ? docPath : null);
+            if (foundPath) {
+                data = await readFile(foundPath);
+                try {
+                    await saveStoredFile(filename, 'absences', contentType, data);
+                } catch (_) {}
+            }
+        }
+
+        if (!data) {
+            return new NextResponse('Arquivo não encontrado', { status: 404 });
+        }
 
         return new NextResponse(data, {
             headers: {
