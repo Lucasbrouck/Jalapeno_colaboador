@@ -73,6 +73,7 @@ function CollaboratorBankApp() {
     const [selectedAbsenceForJustify, setSelectedAbsenceForJustify] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isQuickShiftOpen, setIsQuickShiftOpen] = useState(false);
+    const [pendingPlataNotifications, setPendingPlataNotifications] = useState([]);
     const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
     const showToast = (message, type = 'success') => {
@@ -154,6 +155,84 @@ function CollaboratorBankApp() {
             setPdiEvaluations(Array.isArray(pdiData) ? pdiData : []);
         });
     }, [effectiveUserId, authUser, userData?.company_id, selectedMonth]);
+
+    useEffect(() => {
+        if (!effectiveUserId) return;
+
+        const fetchPlataNotifications = async () => {
+            try {
+                const res = await fetch(`/api/plata/notifications?userId=${effectiveUserId}`, { cache: 'no-store' });
+                const data = await safeJson(res, { notifications: [] });
+                if (Array.isArray(data?.notifications)) {
+                    setPendingPlataNotifications(data.notifications);
+                }
+            } catch (err) {
+                console.error('Error fetching plata notifications:', err);
+            }
+        };
+
+        fetchPlataNotifications();
+
+        const handleVisibilityOrFocus = () => {
+            if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+                fetchPlataNotifications();
+            }
+        };
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('focus', handleVisibilityOrFocus);
+            document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+            window.testPlataTransferPopup = (amount = 25, fromUserName = 'Gestão Jalapeño', description = 'Reconhecimento pelo excelente trabalho no turno!') => {
+                setPendingPlataNotifications(prev => [
+                    ...prev,
+                    {
+                        id: `test-${Date.now()}`,
+                        amount,
+                        fromUserName,
+                        description,
+                        timestamp: new Date().toISOString()
+                    }
+                ]);
+            };
+        }
+
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('focus', handleVisibilityOrFocus);
+                document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+            }
+        };
+    }, [effectiveUserId]);
+
+    const handleAcknowledgePlataNotification = async (openWallet = false) => {
+        const current = pendingPlataNotifications[0];
+        if (!current) return;
+
+        setPendingPlataNotifications(prev => prev.slice(1));
+
+        if (current.id && !String(current.id).startsWith('test-')) {
+            try {
+                await fetch('/api/plata/notifications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: effectiveUserId,
+                        transactionIds: [current.id]
+                    })
+                });
+            } catch (err) {
+                console.error('Failed to mark plata notification as read:', err);
+            }
+        }
+
+        try {
+            window.dispatchEvent(new CustomEvent('plata_balance_updated'));
+        } catch (_) {}
+
+        if (openWallet) {
+            setActiveSection('PLATA');
+        }
+    };
 
     const changeMonth = (delta) => {
         const [y, m] = selectedMonth.split('-').map(Number);
@@ -1456,6 +1535,317 @@ function CollaboratorBankApp() {
             )}
 
             {/* Check-in de ponto agora e o botao central do menu inferior */}
+
+            {/* Popup de Transferência de Platas Recebida */}
+            {pendingPlataNotifications.length > 0 && (() => {
+                const activeNotif = pendingPlataNotifications[0];
+                const amountNum = Number(activeNotif.amount || 0);
+                const senderName = activeNotif.fromUserName || 'RH / Administração';
+                const reasonText = (activeNotif.description || '').trim() || 'Transferência de Platas';
+                let formattedDate = '';
+                if (activeNotif.timestamp) {
+                    try {
+                        const dt = new Date(activeNotif.timestamp);
+                        if (!isNaN(dt.getTime())) {
+                            formattedDate = dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+                                ' às ' +
+                                dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        }
+                    } catch (_) {}
+                }
+
+                return (
+                    <div
+                        onClick={() => handleAcknowledgePlataNotification(false)}
+                        style={{
+                            position: 'fixed',
+                            inset: 0,
+                            background: 'rgba(15, 23, 42, 0.72)',
+                            backdropFilter: 'blur(8px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 99999,
+                            padding: 24
+                        }}
+                    >
+                        <div
+                            key={activeNotif.id}
+                            onClick={e => e.stopPropagation()}
+                            className="plata-transfer-popup-card"
+                            style={{
+                                background: '#ffffff',
+                                borderRadius: 24,
+                                width: '100%',
+                                maxWidth: 340,
+                                padding: '28px 22px 22px',
+                                boxShadow: '0 25px 60px rgba(234, 88, 12, 0.25), 0 10px 30px rgba(15, 23, 42, 0.2)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                textAlign: 'center',
+                                position: 'relative',
+                                overflow: 'hidden'
+                            }}
+                        >
+                            {/* Shimmer top line */}
+                            <div style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: 6,
+                                background: 'linear-gradient(90deg, #f59e0b, #ea580c, #f59e0b)'
+                            }} />
+
+                            {/* Floating sparkles */}
+                            <div className="plata-popup-sparkle sparkle-tl">✨</div>
+                            <div className="plata-popup-sparkle sparkle-tr">⭐</div>
+                            <div className="plata-popup-sparkle sparkle-br">✨</div>
+
+                            {/* Animated Jumping Coin */}
+                            <div className="plata-popup-coin-stage">
+                                <div className="plata-popup-coin-aura" />
+                                <div className="plata-popup-coin-wrapper">
+                                    <div className="plata-popup-coin-disc">
+                                        <div className="plata-popup-coin-specular" />
+                                        <Coins size={38} color="#ffffff" strokeWidth={2.4} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Badge */}
+                            <div style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                color: '#ea580c',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.08em',
+                                background: '#fff7ed',
+                                border: '1px solid #ffedd5',
+                                padding: '4px 12px',
+                                borderRadius: 999,
+                                marginBottom: 10,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 5
+                            }}>
+                                <Sparkles size={12} />
+                                Transferência Recebida!
+                                {pendingPlataNotifications.length > 1 && (
+                                    <span style={{ opacity: 0.8 }}>
+                                        ({pendingPlataNotifications.length})
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Amount */}
+                            <div style={{
+                                fontSize: '1.65rem',
+                                fontWeight: 900,
+                                color: '#0f172a',
+                                lineHeight: 1.15,
+                                marginBottom: 6
+                            }}>
+                                Você recebeu{' '}
+                                <span style={{ color: '#ea580c' }}>
+                                    +{amountNum.toFixed(0)} {amountNum === 1 ? 'Plata' : 'Platas'}
+                                </span>!
+                            </div>
+
+                            {/* Sender info */}
+                            <div style={{
+                                fontSize: '0.82rem',
+                                color: '#475569',
+                                fontWeight: 600,
+                                marginBottom: 14
+                            }}>
+                                Enviado por <strong style={{ color: '#0f172a', fontWeight: 800 }}>{senderName}</strong>
+                            </div>
+
+                            {/* Motivo / Reason Box */}
+                            <div style={{
+                                width: '100%',
+                                background: '#fff7ed',
+                                border: '1px solid #fed7aa',
+                                borderRadius: 16,
+                                padding: '12px 14px',
+                                marginBottom: 18,
+                                textAlign: 'left'
+                            }}>
+                                <div style={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: 800,
+                                    color: '#c2410c',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                    marginBottom: 4
+                                }}>
+                                    Motivo da transferência
+                                </div>
+                                <div style={{
+                                    fontSize: '0.86rem',
+                                    fontWeight: 700,
+                                    color: '#0f172a',
+                                    lineHeight: 1.4,
+                                    wordBreak: 'break-word'
+                                }}>
+                                    “{reasonText}”
+                                </div>
+                                {formattedDate && (
+                                    <div style={{
+                                        fontSize: '0.68rem',
+                                        color: '#9a3412',
+                                        opacity: 0.75,
+                                        fontWeight: 600,
+                                        marginTop: 6
+                                    }}>
+                                        {formattedDate}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => handleAcknowledgePlataNotification(false)}
+                                    style={{
+                                        width: '100%',
+                                        height: 46,
+                                        borderRadius: 14,
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, #ea580c, #c2410c)',
+                                        color: '#ffffff',
+                                        fontWeight: 800,
+                                        fontSize: '0.86rem',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 8px 18px rgba(234, 88, 12, 0.3)',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.04em'
+                                    }}
+                                >
+                                    {pendingPlataNotifications.length > 1
+                                        ? `Receber e Ver Próxima (+${pendingPlataNotifications.length - 1})`
+                                        : 'Receber Platas!'}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => handleAcknowledgePlataNotification(true)}
+                                    style={{
+                                        width: '100%',
+                                        height: 38,
+                                        borderRadius: 12,
+                                        border: '1px solid #fed7aa',
+                                        background: '#ffffff',
+                                        color: '#ea580c',
+                                        fontWeight: 800,
+                                        fontSize: '0.78rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Ver na Carteira Plata
+                                </button>
+                            </div>
+
+                            <style jsx>{`
+                                .plata-transfer-popup-card {
+                                    animation: plataTransferModalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                                }
+                                @keyframes plataTransferModalIn {
+                                    0% { opacity: 0; transform: scale(0.65) translateY(30px); }
+                                    100% { opacity: 1; transform: scale(1) translateY(0); }
+                                }
+                                .plata-popup-coin-stage {
+                                    position: relative;
+                                    width: 104px;
+                                    height: 104px;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    margin-bottom: 10px;
+                                }
+                                .plata-popup-coin-aura {
+                                    position: absolute;
+                                    width: 92px;
+                                    height: 92px;
+                                    border-radius: 50%;
+                                    background: radial-gradient(circle, rgba(245, 158, 11, 0.5) 0%, rgba(234, 88, 12, 0.2) 55%, transparent 75%);
+                                    animation: plataAuraPulse 1.8s ease-in-out infinite alternate;
+                                }
+                                @keyframes plataAuraPulse {
+                                    0% { transform: scale(0.8); opacity: 0.5; }
+                                    100% { transform: scale(1.4); opacity: 1; }
+                                }
+                                .plata-popup-coin-wrapper {
+                                    animation: plataCoinJump 0.85s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, plataCoinIdle 2.2s ease-in-out 0.85s infinite alternate;
+                                }
+                                @keyframes plataCoinJump {
+                                    0% { transform: translateY(90px) scale(0.15) rotate(-45deg); opacity: 0; }
+                                    50% { transform: translateY(-40px) scale(1.35) rotate(15deg); opacity: 1; }
+                                    70% { transform: translateY(12px) scale(0.9) rotate(-6deg); }
+                                    85% { transform: translateY(-6px) scale(1.06) rotate(2deg); }
+                                    100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+                                }
+                                @keyframes plataCoinIdle {
+                                    0% { transform: translateY(0) rotate(0deg); }
+                                    100% { transform: translateY(-8px) rotate(5deg); }
+                                }
+                                .plata-popup-coin-disc {
+                                    width: 74px;
+                                    height: 74px;
+                                    border-radius: 50%;
+                                    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 45%, #d97706 80%, #b45309 100%);
+                                    border: 4px solid #fef3c7;
+                                    box-shadow: 0 12px 28px rgba(217, 119, 6, 0.55), inset 0 3px 6px rgba(255, 255, 255, 0.7), inset 0 -4px 8px rgba(180, 83, 9, 0.7);
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    position: relative;
+                                    overflow: hidden;
+                                }
+                                .plata-popup-coin-specular {
+                                    position: absolute;
+                                    top: -20%;
+                                    left: -20%;
+                                    width: 140%;
+                                    height: 50%;
+                                    background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 100%);
+                                    transform: rotate(-30deg);
+                                    border-radius: 50%;
+                                }
+                                .plata-popup-sparkle {
+                                    position: absolute;
+                                    pointer-events: none;
+                                }
+                                .sparkle-tl {
+                                    top: 22px;
+                                    left: 30px;
+                                    font-size: 1.15rem;
+                                    animation: plataSparkleFlash 1.6s ease-in-out infinite alternate;
+                                }
+                                .sparkle-tr {
+                                    top: 16px;
+                                    right: 32px;
+                                    font-size: 1.25rem;
+                                    animation: plataSparkleFlash 1.4s ease-in-out 0.3s infinite alternate;
+                                }
+                                .sparkle-br {
+                                    top: 78px;
+                                    right: 26px;
+                                    font-size: 1.05rem;
+                                    animation: plataSparkleFlash 1.8s ease-in-out 0.6s infinite alternate;
+                                }
+                                @keyframes plataSparkleFlash {
+                                    0% { transform: scale(0.5) rotate(0deg); opacity: 0.25; }
+                                    100% { transform: scale(1.3) rotate(25deg); opacity: 1; }
+                                }
+                            `}</style>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Toast */}
             {toast.visible && (

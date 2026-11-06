@@ -190,7 +190,8 @@ CREATE TABLE IF NOT EXISTS plata_transactions (
   description TEXT,
   timestamp TEXT NOT NULL,
   hash TEXT NOT NULL,
-  company_id TEXT
+  company_id TEXT,
+  notified INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS streaks_config (
